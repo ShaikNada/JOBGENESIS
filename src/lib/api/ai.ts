@@ -53,3 +53,13 @@ export async function getHint(code: string, language: string, problemDescription
     if (!res.ok) throw new Error("Hint generation failed");
     return res.json();
 }
+
+export async function fetchTechnicalExam(payload: any) {
+    const res = await fetch(`${API_URL}/technical-exam`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Failed to fetch technical exam");
+    return res.json();
+}

@@ -216,3 +216,36 @@ export async function generateHint(payload: any) {
     };
   }
 }
+
+/**
+ * Generate a Technical Exam (MCQs)
+ */
+export async function generateTechnicalExam(payload: any) {
+  const { buildTechnicalExamPrompt } = await import("./promptBuilder");
+
+  const prompt = buildTechnicalExamPrompt({
+    role: payload.role || "Software Engineer",
+    experienceLevel: payload.experienceLevel || "Mid",
+    company: payload.company || "Tech Corp",
+    topic: payload.focus
+  });
+
+  const raw = await askAI(prompt);
+
+  try {
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("No JSON array found in AI response");
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error("EXAM GENERATION ERROR:", e);
+    // Generic fallback MCQs
+    return [
+      {
+        question: `What is a core responsibility of a ${payload.role}?`,
+        options: ["Writing code", "Making coffee", "Sleeping", "Partying"],
+        correctAnswer: 0,
+        explanation: "The primary role is building software."
+      }
+    ];
+  }
+}

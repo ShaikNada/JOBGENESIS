@@ -1,8 +1,18 @@
 import { Router } from "express";
-import { evaluateSubmission, generateChallenge } from "../services/ai/evaluator";
+import { evaluateSubmission, generateChallenge, generateTechnicalExam } from "../services/ai/evaluator";
 import { assistCandidate } from "../services/ai/assistant";
 
 export const aiRouter = Router();
+
+aiRouter.post("/technical-exam", async (req, res) => {
+  try {
+    const result = await generateTechnicalExam(req.body);
+    res.json(result);
+  } catch (e) {
+    console.error("EXAM GENERATION ERROR:", e);
+    res.status(500).json({ error: "EXAM_GENERATION_FAILED" });
+  }
+});
 
 aiRouter.post("/generate", async (req, res) => {
   try {

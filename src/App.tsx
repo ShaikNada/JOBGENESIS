@@ -8,7 +8,9 @@ import { JobDashboard } from './components/JobDashboard';
 import { ProfilePage } from './components/ProfilePage';
 import { Toaster, toast } from 'react-hot-toast';
 
-type AppState = 'auth' | 'resume' | 'resume-preview' | 'dashboard' | 'simulation' | 'profile';
+import { TechnicalExam } from './components/TechnicalExam';
+
+type AppState = 'auth' | 'resume' | 'resume-preview' | 'dashboard' | 'exam' | 'simulation' | 'profile';
 
 function App() {
   const [view, setView] = useState<AppState>('auth');
@@ -20,7 +22,10 @@ function App() {
     role: string;
     company: string;
     level: string;
+    focus?: string;
   } | null>(null);
+
+  const [examScore, setExamScore] = useState<number | null>(null);
 
   const handleLogin = (username: string) => {
     setUser(username);
@@ -47,6 +52,11 @@ function App() {
 
   const handleStartMission = (config: any) => {
     setMissionConfig(config);
+    setView('exam'); // Move to exam first
+  };
+
+  const handleExamFinish = (score: number) => {
+    setExamScore(score);
     setView('simulation');
   };
 
@@ -93,6 +103,16 @@ function App() {
           resumeData={resumeData}
           onBack={() => setView('dashboard')}
           onLogout={handleLogout}
+        />
+      )}
+
+      {view === 'exam' && missionConfig && (
+        <TechnicalExam
+          role={missionConfig.role}
+          company={missionConfig.company}
+          level={missionConfig.level}
+          focus={missionConfig.focus}
+          onFinish={handleExamFinish}
         />
       )}
 

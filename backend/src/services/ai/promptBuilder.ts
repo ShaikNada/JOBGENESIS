@@ -162,3 +162,35 @@ Return JSON:
 }
 `;
 }
+
+export function buildTechnicalExamPrompt({
+  role,
+  experienceLevel,
+  company,
+  topic
+}: {
+  role: string;
+  experienceLevel: string;
+  company: string;
+  topic?: string;
+}) {
+  const topicFocus = topic ? `The focus of this exam is: ${topic}.` : "";
+  return `
+You are a lead technical interviewer at ${company}.
+Your candidate is applying for a ${experienceLevel} ${role} position.
+${topicFocus}
+
+Task:
+Generate 15 Multiple Choice Questions (MCQs) for a technical assessment for this role.
+The questions should test deep conceptual understanding, practical knowledge, and domain-specific skills.
+
+Format:
+Return a JSON array of objects, where each object has:
+- question: The question text.
+- options: An array of 4 possible answers.
+- correctAnswer: The index of the correct answer in the options array (0-3).
+- explanation: A brief explanation of why that answer is correct.
+
+Return ONLY the JSON array.
+`;
+}
