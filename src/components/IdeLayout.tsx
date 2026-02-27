@@ -182,6 +182,7 @@ export const IdeLayout = ({ role, company, experienceLevel }: Props) => {
             setLanguage={handleLanguageChange}
             onRun={handleRunCode}
             isRunning={isRunning}
+            missionId={problem?._id || problem?.id}
           />
         </div>
 
@@ -215,7 +216,7 @@ export const IdeLayout = ({ role, company, experienceLevel }: Props) => {
           </div>
         )}
 
-        {showResults && <ResultsModal score={score} totalTime={(45 * 60) - timeLeft} role={role} company={company} onRestart={() => window.location.reload()} />}
+        {showResults && <ResultsModal score={score} totalTime={(45 * 60) - timeLeft} role={role} company={company} skillTags={[role, ...(problem?.tags || [])]} onRestart={() => window.location.reload()} />}
       </div>
     </div>
   );

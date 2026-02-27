@@ -11,7 +11,7 @@ export const ResumePreview = ({ resumeData, onConfirm, onBack }: ResumePreviewPr
     const [isEditing, setIsEditing] = useState(false);
     const [editedData, setEditedData] = useState(resumeData);
 
-    const { personalInfo, education, workExperience, skills, keywords, summary, experienceLevel, suggestedRoles } = editedData;
+    const { personalInfo, education, workExperience, skills, keywords, summary, experienceLevel } = editedData;
 
     return (
         <div className="min-h-screen bg-dark-950 text-white font-mono overflow-y-auto" style={{ maxHeight: '100vh' }}>
@@ -201,35 +201,7 @@ export const ResumePreview = ({ resumeData, onConfirm, onBack }: ResumePreviewPr
                     </div>
                 )}
 
-                {/* Suggested Roles - Mission Briefing Style */}
-                <section className="bg-dark-900/50 border border-white/5 rounded-2xl p-6 relative mb-8">
-                    <h2 className="text-sm font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-6">
-                        <span className="text-neon-red">TARGET ROLES</span>
-                    </h2>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {suggestedRoles?.map((role: string, idx: number) => (
-                            <div
-                                key={idx}
-                                className="flex items-center gap-4 p-4 rounded-xl border text-left transition-all relative group overflow-hidden h-fit bg-black/20 border-white/5 hover:border-white/20 hover:bg-white/5"
-                            >
-                                <div className="p-2 rounded-lg transition-colors shrink-0 bg-dark-800 text-gray-500 group-hover:text-white">
-                                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div className="min-w-0">
-                                    <div className="font-bold text-sm truncate text-gray-300">
-                                        {role}
-                                    </div>
-                                    <div className="text-[10px] text-gray-500 font-mono truncate">
-                                        {skills?.slice(0, 3).join(', ') || 'Recommended'}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                {/* Suggested Roles Removed as per user request */}
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between gap-4">

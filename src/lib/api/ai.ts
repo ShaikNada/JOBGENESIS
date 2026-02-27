@@ -33,3 +33,23 @@ export async function assistCandidate(payload: any) {
     const data = await res.json();
     return data.reply;
 }
+
+export async function analyzeComplexity(code: string, language: string) {
+    const res = await fetch(`${API_URL}/analyze-complexity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, language }),
+    });
+    if (!res.ok) throw new Error("Analysis failed");
+    return res.json();
+}
+
+export async function getHint(code: string, language: string, problemDescription: string) {
+    const res = await fetch(`${API_URL}/hint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, language, problemDescription }),
+    });
+    if (!res.ok) throw new Error("Hint generation failed");
+    return res.json();
+}

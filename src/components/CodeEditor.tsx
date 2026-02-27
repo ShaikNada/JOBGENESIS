@@ -1,11 +1,13 @@
 import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   Play, Send, Loader2, Terminal, CheckCircle2, XCircle,
-  ChevronUp, ChevronDown, Settings, Keyboard
+  ChevronUp, ChevronDown, Settings, Keyboard, Zap, Lightbulb
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import { analyzeComplexity, getHint } from '../lib/api/ai';
+import { getSocket } from '../socket';
 
 const LANGUAGES: Record<string, { name: string; icon: string }> = {
   javascript: { name: "JavaScript", icon: "JS" },
@@ -41,6 +43,8 @@ interface Props {
     customInput?: string
   ) => Promise<EvaluationResult | null>;
   isRunning: boolean;
+  problemDescription?: string; // Added for hint context
+  missionId?: string; // for real-time collaboration
 }
 
 export const CodeEditor = ({
@@ -49,20 +53,53 @@ export const CodeEditor = ({
   language,
   setLanguage,
   onRun,
-  isRunning
+  isRunning,
+  problemDescription = "",
+  missionId
 }: Props) => {
 
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'output' | 'input'>('output');
-  const [customInput, setCustomInput] = useState("");
+  const [activeTab, setActiveTab] = useState<'output' | 'input' | 'ai'>('output');
   const [fontSize, setFontSize] = useState(14);
   const [testData, setTestData] = useState<EvaluationResult | null>(null);
 
+  // AI State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<{ type: 'complexity' | 'hint', content: any } | null>(null);
+
   const editorRef = useRef<any>(null);
+  // connection state kept for future use
+  const lastSender = useRef<string | null>(null);
+
+  // debounce helper
+  const codeUpdateTimeout = useRef<any>(null);
 
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
   };
+
+  // sync setup when missionId changes
+  useEffect(() => {
+    if (!missionId) return;
+    const socket = getSocket();
+
+    socket.emit('join_mission', { missionId });
+
+    const onCodeUpdate = ({ code: incoming, sender }: { code: string; sender: string }) => {
+      // ignore updates from self
+      if (sender === socket.id) return;
+      lastSender.current = sender;
+      setCode(incoming);
+    };
+
+    socket.on('code_update', onCodeUpdate);
+
+    // connection events could be handled here if needed
+
+    return () => {
+      socket.off('code_update', onCodeUpdate);
+    };
+  }, [missionId, setCode]);
 
   const handleAction = async (mode: 'run' | 'submit' | 'custom') => {
     if (!isTerminalOpen) setIsTerminalOpen(true);
@@ -70,14 +107,44 @@ export const CodeEditor = ({
     const effectiveMode =
       mode === 'run' && activeTab === 'input' ? 'custom' : mode;
 
-    const inputToSend =
-      effectiveMode === 'custom' ? customInput : undefined;
+    const inputToSend = undefined; // custom input tab removed
 
     setActiveTab('output');
     setTestData(null);
+    setAiFeedback(null);
 
     const result = await onRun(effectiveMode, inputToSend);
     if (result) setTestData(result);
+  };
+
+  const handleComplexityAnalysis = async () => {
+    if (!code.trim()) return;
+    setIsAnalyzing(true);
+    setIsTerminalOpen(true);
+    setActiveTab('ai');
+    try {
+      const result = await analyzeComplexity(code, language);
+      setAiFeedback({ type: 'complexity', content: result });
+    } catch (e) {
+      setAiFeedback({ type: 'complexity', content: { explanation: "Failed to analyze code." } });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleGetHint = async () => {
+    if (!code.trim()) return;
+    setIsAnalyzing(true);
+    setIsTerminalOpen(true);
+    setActiveTab('ai');
+    try {
+      const result = await getHint(code, language, problemDescription);
+      setAiFeedback({ type: 'hint', content: result });
+    } catch (e) {
+      setAiFeedback({ type: 'hint', content: { hint: "Could not generate hint." } });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   // ✅ NORMALIZED, SAFE RESULTS ARRAY
@@ -127,6 +194,28 @@ export const CodeEditor = ({
         </div>
 
         <div className="flex gap-2">
+
+          {/* AI TOOLS */}
+          <button
+            onClick={handleComplexityAnalysis}
+            disabled={isAnalyzing || isRunning}
+            className="flex items-center gap-1 text-xs text-yellow-400 hover:bg-dark-800 px-3 py-1.5 rounded"
+            title="Analyze Complexity"
+          >
+            <Zap size={14} /> Analyze
+          </button>
+
+          <button
+            onClick={handleGetHint}
+            disabled={isAnalyzing || isRunning}
+            className="flex items-center gap-1 text-xs text-blue-400 hover:bg-dark-800 px-3 py-1.5 rounded"
+            title="Get Hint"
+          >
+            <Lightbulb size={14} /> Hint
+          </button>
+
+          <div className="h-4 w-px bg-dark-700 mx-2"></div>
+
           <button
             onClick={() => handleAction('run')}
             disabled={isRunning}
@@ -151,7 +240,17 @@ export const CodeEditor = ({
           language={language}
           theme="vs-dark"
           value={code}
-          onChange={(v) => setCode(v || "")}
+          onChange={(v) => {
+            const val = v || "";
+            setCode(val);
+            if (missionId) {
+              clearTimeout(codeUpdateTimeout.current);
+              codeUpdateTimeout.current = setTimeout(() => {
+                const socket = getSocket();
+                socket.emit('code_update', { missionId, code: val });
+              }, 250);
+            }
+          }}
           onMount={handleEditorDidMount}
           options={{
             minimap: { enabled: false },
@@ -164,66 +263,118 @@ export const CodeEditor = ({
 
       {/* TERMINAL */}
       <div className={clsx(
-        "absolute bottom-0 w-full bg-dark-900 border-t border-dark-700 transition-all",
+        "absolute bottom-0 w-full bg-dark-900 border-t border-dark-700 transition-all flex flex-col",
         isTerminalOpen ? "h-[200px]" : "h-9"
       )}>
 
-        <div className="h-9 flex items-center px-2 border-b border-dark-800">
-          <button
-            onClick={() => setIsTerminalOpen(!isTerminalOpen)}
-            className="text-xs font-mono"
-          >
-            <Terminal size={12} /> CONSOLE
-            {isTerminalOpen ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-          </button>
+        <div className="h-9 flex items-center px-2 border-b border-dark-800 justify-between shrink-0">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+              className="text-xs font-mono flex items-center gap-2"
+            >
+              <Terminal size={12} /> CONSOLE
+              {isTerminalOpen ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+            </button>
+
+            {isTerminalOpen && (
+              <>
+                <button
+                  onClick={() => setActiveTab('output')}
+                  className={clsx("text-xs px-2 border-b-2 transition-colors", activeTab === 'output' ? "border-neon-red text-white" : "border-transparent text-gray-500")}
+                >
+                  Output
+                </button>
+                <button
+                  onClick={() => setActiveTab('ai')}
+                  className={clsx("text-xs px-2 border-b-2 transition-colors", activeTab === 'ai' ? "border-yellow-500 text-yellow-500" : "border-transparent text-gray-500")}
+                >
+                  AI Coach
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {isTerminalOpen && (
-          <div className="p-4 overflow-y-auto h-full">
+          <div className="p-4 overflow-y-auto flex-1 h-full pb-10 min-h-0">
 
-            {isRunning && (
-              <div className="flex flex-col items-center text-neon-red">
+            {isRunning || isAnalyzing ? (
+              <div className="flex flex-col items-center justify-center h-full text-neon-red">
                 <Loader2 className="animate-spin" />
-                Running...
+                <span className="mt-2 text-xs text-gray-400">{isAnalyzing ? "Analyzing..." : "Running..."}</span>
               </div>
-            )}
-
-            {!isRunning && testData && (
+            ) : (
               <>
-                {safeResults.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {safeResults.map((res, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className={clsx(
-                          "p-3 rounded border",
-                          res.status === "Passed"
-                            ? "border-green-500 text-green-400"
-                            : "border-red-500 text-red-400"
-                        )}
-                      >
-                        {res.status === "Passed"
-                          ? <CheckCircle2 size={14} />
-                          : <XCircle size={14} />}
-                        Case {i + 1}
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-400 text-xs mt-4">
-                    {testData.feedback || "No test cases executed."}
+                {activeTab === 'ai' && (
+                  <div className="text-sm font-mono text-gray-300">
+                    {aiFeedback ? (
+                      aiFeedback.type === 'complexity' ? (
+                        <div className="space-y-2">
+                          <h3 className="text-yellow-400 font-bold">Complexity Analysis</h3>
+                          <p>⏱️ <span className="text-white">Time:</span> {aiFeedback.content.timeComplexity}</p>
+                          <p>💾 <span className="text-white">Space:</span> {aiFeedback.content.spaceComplexity}</p>
+                          <p className="text-gray-400 italic mt-2 border-l-2 border-dark-700 pl-3">
+                            "{aiFeedback.content.explanation}"
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <h3 className="text-blue-400 font-bold">💡 Hint</h3>
+                          <p className="text-gray-300">
+                            {aiFeedback.content.hint}
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-center text-gray-500 mt-8">
+                        <Zap className="mx-auto mb-2 opacity-50" />
+                        <p>Select "Analyze" or "Hint" from the toolbar.</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </>
-            )}
 
-            {!isRunning && !testData && (
-              <div className="flex flex-col items-center text-gray-500">
-                <Keyboard />
-                Run code to see results
-              </div>
+                {activeTab === 'output' && (
+                  <>
+                    {testData ? (
+                      <>
+                        {safeResults.length > 0 ? (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {safeResults.map((res, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className={clsx(
+                                  "p-3 rounded border",
+                                  res.status === "Passed"
+                                    ? "border-green-500 text-green-400"
+                                    : "border-red-500 text-red-400"
+                                )}
+                              >
+                                {res.status === "Passed"
+                                  ? <CheckCircle2 size={14} />
+                                  : <XCircle size={14} />}
+                                Case {i + 1}
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-gray-400 text-xs mt-4">
+                            {testData.feedback || "No test cases executed."}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center text-gray-500 mt-8">
+                        <Keyboard className="mb-2 opacity-50" />
+                        Run code to see results
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </div>
         )}

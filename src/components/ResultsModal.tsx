@@ -8,10 +8,11 @@ interface Props {
   totalTime: number; // Seconds elapsed
   role: string;
   company: string;
+  skillTags?: string[]; // Domain #74: verified skills from this mission
   onRestart: () => void;
 }
 
-export const ResultsModal = ({ score, totalTime, role, company, onRestart }: Props) => {
+export const ResultsModal = ({ score, totalTime, role, company, skillTags, onRestart }: Props) => {
   const [windowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [suggestion, setSuggestion] = useState<string>("Analyzing performance vectors...");
 
@@ -51,7 +52,8 @@ export const ResultsModal = ({ score, totalTime, role, company, onRestart }: Pro
             company,
             score,
             rank,
-            feedback: `Candidate achieved ${rank} Rank in ${timeStr} for ${role} at ${company}.`
+            feedback: `Candidate achieved ${rank} Rank in ${timeStr} for ${role} at ${company}.`,
+            skillTags: skillTags || []
           })
         });
       } catch (err) {
