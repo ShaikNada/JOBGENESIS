@@ -25,8 +25,11 @@ export const extractTextAndAnalyze = async (req: Request, res: Response) => {
 
         if (mimetype === "application/pdf") {
             console.log("🔍 Parsing PDF...");
-            const pdf = cjsRequire("pdf-parse");
-            const data = await pdf(buffer);
+            // Fix: pdf-parse v2 uses class-based API
+            const { PDFParse } = cjsRequire("pdf-parse");
+            const parser = new PDFParse({ data: buffer });
+            const data = await parser.getText();
+            await parser.destroy();
             resumeText = data.text;
             console.log("✅ PDF extracted, text length:", resumeText.length);
         } else if (

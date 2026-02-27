@@ -128,3 +128,37 @@ Return JSON exactly as follows:
 }
 `;
 }
+
+export function buildComplexityPrompt(code: string, language: string) {
+  return `
+Analyze the Time and Space complexity of this ${language} code.
+
+Code:
+${code}
+
+Return JSON:
+{
+  "timeComplexity": "O(...)",
+  "spaceComplexity": "O(...)",
+  "explanation": "Brief explanation (max 2 sentences)."
+}
+`;
+}
+
+export function buildHintPrompt(code: string, problemDescription: string, language: string) {
+  return `
+You are a helpful coding coach. The user is stuck on this problem.
+Give a subtle hint that nudges them in the right direction WITHOUT revealing the solution or writing code.
+
+Problem:
+${problemDescription}
+
+User Code:
+${code}
+
+Return JSON:
+{
+  "hint": "Your subtle hint here..."
+}
+`;
+}

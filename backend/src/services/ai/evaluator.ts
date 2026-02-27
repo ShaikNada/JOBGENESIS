@@ -70,8 +70,19 @@ export async function generateChallenge(payload: any) {
     const raw = await askAI(prompt);
 
     // 3️⃣ Clean + parse AI response
-    const cleaned = raw.replace(/```json|```/g, "").trim();
-    aiData = JSON.parse(cleaned);
+    // 3️⃣ Clean + parse AI response
+    const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in AI response");
+    }
+
+    try {
+      aiData = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+      // Retry with aggressive cleaning if first parse fails
+      const cleaned = raw.replace(/```json|```/g, "").trim();
+      aiData = JSON.parse(cleaned);
+    }
 
     // 4️⃣ HARD SAFETY (frontend will NEVER crash)
     const dbStarter = problem.starterCode as any;
@@ -160,4 +171,48 @@ export async function evaluateSubmission(payload: any) {
   return JSON.parse(
     raw.replace(/```json/g, "").replace(/```/g, "").trim()
   );
+}
+
+/**
+ * Analyze Code Complexity
+ */
+export async function analyzeComplexity(payload: any) {
+  const { code, language } = payload;
+  const { buildComplexityPrompt } = await import("./promptBuilder");
+
+  const prompt = buildComplexityPrompt(code, language);
+  const raw = await askAI(prompt);
+
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("No JSON found");
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    return {
+      timeComplexity: "Unknown",
+      spaceComplexity: "Unknown",
+      explanation: "Could not analyze complexity at this time."
+    };
+  }
+}
+
+/**
+ * Generate a Hint
+ */
+export async function generateHint(payload: any) {
+  const { code, problemDescription, language } = payload;
+  const { buildHintPrompt } = await import("./promptBuilder");
+
+  const prompt = buildHintPrompt(code, problemDescription, language);
+  const raw = await askAI(prompt);
+
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("No JSON found");
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    return {
+      hint: "Review your logic and check edge cases."
+    };
+  }
 }

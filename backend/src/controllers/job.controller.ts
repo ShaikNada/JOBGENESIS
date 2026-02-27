@@ -3,6 +3,7 @@ import { fetchRealJobs } from "../services/jobs/jobSearchService";
 import { askAI } from "../services/ai/modelRouter";
 import { Mission } from "../models/Mission.model";
 import { User } from "../models/User.model";
+import { executeCareerPathAnalysis } from "../services/jobs/careerPathService";
 
 // @desc    Get AI-matched jobs based on resume (Real Search)
 // @route   POST /api/jobs/match
@@ -59,11 +60,29 @@ export const analyzeGap = async (req: Request, res: Response) => {
   }
 };
 
+// @desc    Analyze career path for target role and company
+// @route   POST /api/jobs/target-path
+export const analyzeTargetPath = async (req: Request, res: Response) => {
+  try {
+    const { resumeData, targetRole, targetCompany, level } = req.body;
+
+    if (!resumeData || !targetRole || !targetCompany) {
+      return res.status(400).json({ message: "Missing required profile or target data" });
+    }
+
+    const analysis = await executeCareerPathAnalysis(resumeData, targetRole, targetCompany, level || "Junior");
+    res.json(analysis);
+  } catch (error) {
+    console.error("Target Path Analysis Error:", error);
+    res.status(500).json({ message: "Failed to analyze target path" });
+  }
+};
+
 // @desc    Save mission result
 // @route   POST /api/jobs/save-result
 export const saveMissionResult = async (req: Request, res: Response) => {
   try {
-    const { role, company, score, rank, feedback } = req.body;
+    const { role, company, score, rank, feedback, skillTags } = req.body;
     const userId = (req as any).user?._id;
 
     if (!userId) {
@@ -76,7 +95,8 @@ export const saveMissionResult = async (req: Request, res: Response) => {
       company,
       score,
       rank,
-      feedback
+      feedback,
+      skillTags: skillTags || [],
     });
 
     res.status(201).json(mission);

@@ -4,12 +4,13 @@ import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key_123";
+const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const generateToken = (id: string) => {
+    if (!JWT_SECRET) throw new Error("JWT_SECRET is not defined");
     return jwt.sign({ id }, JWT_SECRET, { expiresIn: "7d" });
 };
 

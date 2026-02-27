@@ -43,3 +43,23 @@ aiRouter.post("/assist", async (req, res) => {
     res.json({ reply: "Assistant temporarily unavailable." });
   }
 });
+
+aiRouter.post("/analyze-complexity", async (req, res) => {
+  try {
+    const { analyzeComplexity } = await import("../services/ai/evaluator");
+    const result = await analyzeComplexity(req.body);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: "Complexity analysis failed" });
+  }
+});
+
+aiRouter.post("/hint", async (req, res) => {
+  try {
+    const { generateHint } = await import("../services/ai/evaluator");
+    const result = await generateHint(req.body);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: "Hint generation failed" });
+  }
+});

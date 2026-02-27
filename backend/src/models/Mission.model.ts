@@ -18,6 +18,9 @@ const missionSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    skillTags: [{
+        type: String, // Domain #74: Tracks exact verified skills (e.g. ['React', 'Node.js'])
+    }],
     rank: {
         type: String,
         required: true,
