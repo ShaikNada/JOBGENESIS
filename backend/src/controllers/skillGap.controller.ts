@@ -17,18 +17,36 @@ export const analyzeSkillGap = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Both resumeText and jobDescriptionText are required." });
         }
 
-        // 1. Deterministic Extraction (NLP / Keyword Match vs DB)
-        const userSkills = await extractSkills(resumeText);
-        const jobSkills = await extractSkills(jobDescriptionText);
+        // Domain #74: Call the dedicated Python ML Microservice
+        const pythonResponse = await fetch('http://127.0.0.1:8000/api/ml/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                resumeText,
+                jobDescriptionText,
+                targetRole: req.body.targetRole || "Software Engineer"
+            })
+        });
 
-        // 2. Skill Gap Math Engine
-        const gapResult = calculateGap(userSkills, jobSkills);
+        if (!pythonResponse.ok) {
+            throw new Error(`Python ML Engine error: ${pythonResponse.statusText}`);
+        }
 
-        // 3. TF-IDF Semantic Similarity Engine
+        const mlData = await pythonResponse.json();
+
+        // The ML Engine returns classification, confidenceScore, missingSkills, extractedSkills, and recommendations.
+        // We still calculate Semantic Similarity and Employability Index here to bind it to the Mongo Database coding score.
         const semanticSimilarity = calculateSemanticSimilarity(resumeText, jobDescriptionText);
 
-        // 4. Recommendation Engine
-        const recommendations = generateRecommendations(gapResult.missingSkills);
+        // Derive match and weighted scores from ML data
+        const matchCount = (mlData.extractedSkills || []).length;
+        const missingCount = (mlData.missingSkills || []).length;
+        const totalSkills = matchCount + missingCount || 1;
+        const matchScoreRaw = Math.round((matchCount / totalSkills) * 100);
+
+        // For backwards compatibility with the UI, we'll use matchScoreRaw as the weighted score 
+        // until the UI is updated to use the new ML 'classification' label.
+        const weightedScore = matchScoreRaw;
 
         // 5. Employability Index Math
         // Formula: (0.4 * weightedScore) + (0.3 * semanticSimilarity) + (0.3 * codingPerformanceScore)
@@ -50,20 +68,23 @@ export const analyzeSkillGap = async (req: Request, res: Response) => {
         }
 
         const employabilityIndex = Math.round(
-            (gapResult.weightedScore * 0.4) +
+            (weightedScore * 0.4) +
             (semanticSimilarity * 0.3) +
             (codingPerformanceScore * 0.3)
         );
 
         // 6. Return standard structured Hackathon output
         return res.status(200).json({
-            matchScoreRaw: gapResult.matchScoreRaw,
-            weightedScore: gapResult.weightedScore,
+            matchScoreRaw,
+            weightedScore,
             semanticSimilarity,
             employabilityIndex,
-            matchedSkills: gapResult.matchedSkills.map(s => s.name),
-            missingSkills: gapResult.missingSkills.map(s => s.name),
-            recommendations
+            matchedSkills: mlData.extractedSkills,
+            missingSkills: mlData.missingSkills,
+            recommendations: mlData.recommendations,
+            // New ML Metadata
+            classification: mlData.classification,
+            confidenceScore: mlData.confidenceScore
         });
 
     } catch (error) {
