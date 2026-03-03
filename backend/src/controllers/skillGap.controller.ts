@@ -18,7 +18,8 @@ export const analyzeSkillGap = async (req: Request, res: Response) => {
         }
 
         // Domain #74: Call the dedicated Python ML Microservice
-        const pythonResponse = await fetch('http://127.0.0.1:8000/api/ml/analyze', {
+        const mlUrl = process.env.ML_ENGINE_URL || 'http://127.0.0.1:8000';
+        const pythonResponse = await fetch(`${mlUrl}/api/ml/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

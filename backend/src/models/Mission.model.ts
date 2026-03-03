@@ -21,6 +21,15 @@ const missionSchema = new mongoose.Schema({
     skillTags: [{
         type: String, // Domain #74: Tracks exact verified skills (e.g. ['React', 'Node.js'])
     }],
+    campaignId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Campaign",
+        required: false, // Optional for normal candidates practicing
+    },
+    employabilityIndex: {
+        type: Number,
+        default: 0,
+    },
     rank: {
         type: String,
         required: true,
@@ -28,6 +37,20 @@ const missionSchema = new mongoose.Schema({
     feedback: {
         type: String,
         default: "",
+    },
+    progression: {
+        assessmentStartedAt: Date,
+        assessmentCompletedAt: Date,
+        codingStartedAt: Date,
+        codingCompletedAt: Date,
+        interviewStartedAt: Date,
+        interviewCompletedAt: Date,
+    },
+    telemetry: {
+        tabSwitches: { type: Number, default: 0 },
+        pasteEvents: { type: Number, default: 0 },
+        totalKeystrokes: { type: Number, default: 0 },
+        typingIntervals: [Number],
     },
     completedAt: {
         type: Date,

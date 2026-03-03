@@ -5,6 +5,7 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     name: string;
+    role: "candidate" | "recruiter" | "admin";
     authProvider: "local" | "google" | "github";
     googleId?: string;
     githubId?: string;
@@ -21,6 +22,7 @@ const UserSchema = new Schema<IUser>(
         email: { type: String, required: true, unique: true },
         password: { type: String }, // Optional for OAuth users
         name: { type: String, required: true },
+        role: { type: String, enum: ["candidate", "recruiter", "admin"], default: "candidate" },
         authProvider: { type: String, required: true, default: "local" },
         googleId: { type: String },
         githubId: { type: String },

@@ -1,5 +1,5 @@
-import { runJavaScript } from "./jsRunner";
-import Problem from "../../models/Problem";
+import { codeQueue } from "./queue";
+import { Problem } from "../../models/Problem.model";
 
 export async function deterministicJudge(payload: any) {
   const { code, language, problemId } = payload;
@@ -15,11 +15,22 @@ export async function deterministicJudge(payload: any) {
   const problem = await Problem.findById(problemId);
   if (!problem) return fail("Problem not found");
 
-  return runJavaScript(
+  // Add to queue and wait for the worker to process it
+  const job = await codeQueue.add('execute', {
     code,
-    problem.testCases,
-    problem.functionName
-  );
+    testCases: problem.testCases,
+    functionName: problem.functionName
+  });
+
+  try {
+    // Wait for the result with a timeout (e.g., 5 seconds)
+    const result = await job.waitUntilFinished(new (require('bullmq').QueueEvents)('code-execution', {
+      connection: codeQueue.opts.connection
+    }));
+    return result;
+  } catch (err: any) {
+    return fail("Execution timed out or failed in worker: " + err.message);
+  }
 }
 
 function fail(reason: string) {

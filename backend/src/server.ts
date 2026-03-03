@@ -5,13 +5,19 @@ dotenv.config();
 import { app } from "./app";
 import { connectDB } from "./db/connect";
 import { registerUser, loginUser, googleAuth, verifyEmail } from "./controllers/auth.controller";
-import { matchJobs, analyzeGap, saveMissionResult, getUserMissions, analyzeTargetPath } from "./controllers/job.controller";
+import { matchJobs, analyzeGap, analyzeTargetPath, saveMissionResult, getUserMissions, startMission, updateMissionProgress } from "./controllers/job.controller";
+import { processMissionForCAL } from "./services/ai/calService";
 import { extractTextAndAnalyze, analyzePlainResumeText } from "./controllers/resume.controller";
 import skillGapRouter from "./routes/skillGap.route";
+import interviewRouter from "./routes/interview.route";
+import assessmentRouter from "./routes/assessment.route";
+import recruiterRouter from "./routes/recruiter.route";
 import express from "express";
 import http from "http";
 import multer from "multer";
 import { initializeSocket } from "./socketService";
+import { globalLimiter, aiEndpointLimiter } from "./middleware/rateLimiter";
+import { setupWorker } from "./services/judge/queue";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 4000;
@@ -24,6 +30,11 @@ const PORT = process.env.PORT || 4000;
 
 // Auth Routes
 const authRouter = express.Router();
+
+// Apply Global Rate Limiter to all auth/misc requests
+app.use("/api/auth", globalLimiter, authRouter);
+
+
 authRouter.post("/register", registerUser);
 authRouter.post("/login", loginUser);
 authRouter.post("/google", googleAuth);
@@ -37,6 +48,8 @@ jobRouter.post("/match", matchJobs);
 jobRouter.post("/gap-analysis", analyzeGap);
 jobRouter.post("/target-path", analyzeTargetPath);
 jobRouter.post("/save-result", protect, saveMissionResult);
+jobRouter.post("/start-mission", protect, startMission);
+jobRouter.patch("/mission/:id/progress", protect, updateMissionProgress);
 jobRouter.get("/history", protect, getUserMissions);
 
 // AI / Resume Routes (matching frontend http://localhost:4000/api/ai/...)
@@ -48,8 +61,11 @@ aiRouter.post("/analyze-resume", analyzePlainResumeText);
 
 app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobRouter);
-app.use("/api/ai", aiRouter);
-app.use("/api/skill-gap", skillGapRouter);
+app.use("/api/recruiter", recruiterRouter);
+app.use("/api/ai", aiEndpointLimiter, aiRouter);
+app.use("/api/skill-gap", aiEndpointLimiter, skillGapRouter);
+app.use("/api/interview", aiEndpointLimiter, interviewRouter);
+app.use("/api/assessment", aiEndpointLimiter, assessmentRouter);
 
 
 // CRITICAL: Fail fast if config is missing
@@ -69,6 +85,8 @@ function checkConfig() {
     checkConfig();
     console.log("📂 Connecting to Database...");
     await connectDB();
+    console.log("👷 Starting BullMQ Background Worker...");
+    setupWorker();
 
     // create http server wrapper so socket.io can piggyback
     const httpServer = http.createServer(app);

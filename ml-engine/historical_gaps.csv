@@ -1,0 +1,23 @@
+match_count,missing_count,total_required,label
+10,0,10,Ready to Hire
+9,1,10,Ready to Hire
+8,2,10,Minor Gap - Trainable
+7,3,10,Minor Gap - Trainable
+6,4,10,Moderate Gap - Needs Upskilling
+5,5,10,Moderate Gap - Needs Upskilling
+4,6,10,High Gap - Significant Training Needed
+3,7,10,High Gap - Significant Training Needed
+2,8,10,Critical Gap - Not a Fit
+1,9,10,Critical Gap - Not a Fit
+0,10,10,Critical Gap - Not a Fit
+5,0,5,Ready to Hire
+4,1,5,Minor Gap - Trainable
+3,2,5,Moderate Gap - Needs Upskilling
+2,3,5,High Gap - Significant Training Needed
+1,4,5,Critical Gap - Not a Fit
+0,5,5,Critical Gap - Not a Fit
+8,0,8,Ready to Hire
+7,1,8,Ready to Hire
+5,3,8,Moderate Gap - Needs Upskilling
+2,6,8,High Gap - Significant Training Needed
+0,8,8,Critical Gap - Not a Fit

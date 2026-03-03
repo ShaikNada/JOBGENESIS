@@ -1,36 +1,23 @@
+import pandas as pd
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
+import os
 
-# Define a simple training dataset to classify Skill Gaps
-# [matched_count, missing_count, total_required]
-X_train = np.array([
-    [10, 0, 10],   # Perfect Match
-    [8, 2, 10],    # Minor Gap
-    [5, 5, 10],    # Moderate Gap
-    [2, 8, 10],    # High Gap
-    [0, 10, 10],   # Critical Gap
-    [6, 0, 6],     # Perfect Match (fewer skills)
-    [3, 3, 6],     # Moderate Gap (fewer skills)
-])
+# 1. Dynamically load the historical training data from the structural CSV file
+csv_path = os.path.join(os.path.dirname(__file__), "historical_gaps.csv")
+df = pd.read_csv(csv_path)
 
-# Labels for the corresponding training data
-y_train = [
-    "Ready to Hire",
-    "Minor Gap - Trainable",
-    "Moderate Gap - Needs Upskilling",
-    "High Gap - Significant Training Needed",
-    "Critical Gap - Not a Fit",
-    "Ready to Hire",
-    "Moderate Gap - Needs Upskilling",
-]
+# 2. Prepare the feature matrix (X) and target labels (y) using Pandas
+X_train = df[["match_count", "missing_count", "total_required"]].values
+y_train = df["label"].values
 
-# Initialize and train the ML Classifier (K-Nearest Neighbors)
-clf = KNeighborsClassifier(n_neighbors=1)
+# 3. Initialize and train the ML Classifier dynamically
+clf = KNeighborsClassifier(n_neighbors=3)
 clf.fit(X_train, y_train)
 
 def classify_skill_gap(match_count: int, missing_count: int, total_required: int) -> dict:
     """
-    Uses a trained scikit-learn model to classify the candidate's skill gap.
+    Uses the trained scikit-learn model to classify the candidate's skill gap severity.
     """
     if total_required == 0:
         return {"label": "Insufficient Data", "confidence": 0.0}
@@ -44,6 +31,28 @@ def classify_skill_gap(match_count: int, missing_count: int, total_required: int
     confidence = round(ratio * 100, 2)
     
     return {
-        "label": prediction,
-        "confidence": confidence
+        "label": str(prediction),
+        "confidence": float(confidence)
     }
+
+def sync_and_retrain(new_data: list):
+    """
+    Retrains the model with fresh data from the CAL pipeline.
+    """
+    global clf
+    if not new_data:
+        return
+    
+    # Convert new data to feature matrix
+    new_df = pd.DataFrame(new_data)
+    X_new = new_df[["match_count", "missing_count", "total_required"]].values
+    y_new = new_df["label"].values
+    
+    # Combine with original training data
+    X_combined = np.vstack((X_train, X_new))
+    y_combined = np.concatenate((y_train, y_new))
+    
+    # Retrain
+    clf = KNeighborsClassifier(n_neighbors=3)
+    clf.fit(X_combined, y_combined)
+    print(f"[ML ENGINE] Model retrained with {len(new_data)} new samples.")

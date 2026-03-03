@@ -60,10 +60,10 @@ export async function generateChallenge(payload: any) {
     // 🟢 STANDARD ROUNDS (1 & 2) - Existing Logic
     // 1️⃣ Build AI prompt from REAL DB problem
     const prompt = buildGeneratePrompt({
-      title: problem.title,
-      description: problem.description,
-      difficulty: problem.difficulty,
-      starterCode: problem.starterCode
+      title: problem.title || "",
+      description: problem.description || "",
+      difficulty: problem.difficulty || "",
+      starterCode: problem.starterCode || ""
     });
 
     // 2️⃣ Ask AI (Gemini / Groq)
@@ -164,13 +164,48 @@ export async function evaluateSubmission(payload: any) {
     };
   }
 
-  // 🤖 AI-assisted evaluation (temporary, replace with sandbox later)
-  const prompt = buildEvaluatePrompt(payload);
+  // Sandbox / Deterministic judging logic for JavaScript
+  let sandboxResult: any = null;
+  if (language === "javascript" && mode !== "custom") {
+    try {
+      const { deterministicJudge } = await import("../judge/index");
+      sandboxResult = await deterministicJudge(payload);
+    } catch (e) {
+      console.error("Sandbox failure, falling back to AI baseline:", e);
+    }
+  }
+
+  // 🤖 AI-assisted evaluation (now augmented by sandbox data if available)
+  const extendedPayload = {
+    ...payload,
+    sandboxResult: sandboxResult || { feedback: "Sandbox unavailable" }
+  };
+
+  const prompt = buildEvaluatePrompt(extendedPayload);
   const raw = await askAI(prompt);
 
-  return JSON.parse(
-    raw.replace(/```json/g, "").replace(/```/g, "").trim()
-  );
+  try {
+    const aiResponse = JSON.parse(raw.replace(/```json/g, "").replace(/```/g, "").trim());
+
+    // Merge results if sandbox was used
+    if (sandboxResult && sandboxResult.results) {
+      return {
+        ...aiResponse,
+        passed: sandboxResult.passed,
+        passCount: sandboxResult.passCount,
+        totalTests: sandboxResult.totalTests,
+        results: sandboxResult.results
+      };
+    }
+
+    return aiResponse;
+  } catch (err) {
+    console.error("AI Evaluation Parse Failure:", err);
+    // Fallback to sandbox result if AI fails but sandbox worked
+    if (sandboxResult) return sandboxResult;
+
+    throw new Error("Evaluation engine malfunction");
+  }
 }
 
 /**

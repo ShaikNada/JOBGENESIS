@@ -1,5 +1,5 @@
 export async function fetchProblems() {
-  const res = await fetch("http://localhost:4000/api/problems");
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/problems`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch problems");

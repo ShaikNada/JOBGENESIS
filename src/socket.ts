@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 // Singleton manager for client-side socket connection
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:4000", {
+    socket = io(import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`, {
       transports: ["websocket"],
       autoConnect: true,
     });

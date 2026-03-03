@@ -1,0 +1,73 @@
+# Project Vanguard: System Architecture & Workflow Overview
+
+JobGenesis (Project Vanguard) is a high-performance, AI-powered technical assessment SaaS designed for the modern engineering hiring bar. Below is a detailed "overflow" of the entire ecosystem.
+
+---
+
+## 🏗️ 1. Core Architecture
+The system follows a **Decoupled Monolith** pattern with specialized workers and micro-services.
+
+*   **Frontend**: React + Vite + Tailwind CSS. Optimized for low-latency interactions in the IDE and highly dynamic recruiter dashboards. Uses **Framermotion** for premium micro-animations.
+*   **Backend**: Node.js + Express. Stateless architecture powered by **Redis** for session management, job queuing, and rate limiting.
+*   **Database**: MongoDB (Mongoose) for structured data; Redis for ephemeral state (Assessment Truth, Code Queue).
+*   **Sandboxing**: Code execution is isolated using **Isolated-VM** and asynchronous workers.
+
+---
+
+## 🚦 2. End-to-End Workflows
+
+### A. Candidate Flow (B2C / Open Exploration)
+1.  **Bio-Calibration (Resume Upload)**: Candidate uploads a PDF/TXT. The system parses it into a structured bio-profile using AI.
+2.  **Target Selection**: Candidate selects a target Role and Company (e.g., Senior Fullstack @ Google).
+3.  **Gap Analysis**: AI compares the candidate's bio-data against the target company's culture and role requirements, generating a "Match Score" and identifying "Critical Gaps".
+4.  **The Gauntlet**:
+    *   **Phase 1: MCQ**: Role-specific, AI-generated questions. Answers are validated server-side via Redis to prevent cheating.
+    *   **Phase 2: Coding**: Multi-round coding challenges in a real-time IDE. Code is executed in a background worker pool via **BullMQ**.
+    *   **Phase 3: AI Interview**: Voice-to-text interview where an AI "Senior Manager" grills the candidate on their specific code choices using **RAG (Retrieval-Augmented Generation)** for company context.
+5.  **Final Intelligence Report**: Candidate receives a master report with an **Employability Index**, verification of skills, and personalized upskilling recommendations.
+
+### B. Recruiter Flow (B2B / Pipeline Management)
+1.  **Vanguard Command Center**: Recruiters log in to a dedicated dashboard.
+2.  **Campaign Initialization**: A recruiter creates an "Assessment Campaign" for a specific role (e.g., Backend Lead @ Netflix).
+3.  **Deployment**: The system generates a unique, shareable **Gauntlet Link**.
+4.  **Live Analytics**: Recruiters see candidate progress in real-time (Heartbeat updates).
+5.  **The Leaderboard**: A centralized view of all candidates, ranked by **Employability Index** (a weighted average of MCQ, Coding, and Interview performance).
+
+---
+
+## 🧠 3. AI & ML Infrastructure
+
+### RAG (Retrieval-Augmented Generation)
+The system doesn't just ask generic questions. When a candidate targets "Stripe", the **Knowledge Base** injects Stripe's engineering principles (e.g., API design, scalability focus) into the AI Interviewer's prompt, making the experience hyper-realistic.
+
+### CAL (Continuous Active Learning) Pipeline
+Every mission result (anonymized) is fed into the **TrainingData** collection.
+*   The system calculates **Typing Stability** (variance in keystroke intervals) and **Tab-Switch Ratios**.
+*   This data trains the internal model to better differentiate between "Elite Talent" and "Bot/AI assisted" activity.
+
+---
+
+## 🛡️ 4. Security & Performance
+*   **Forensic Telemetry**: Tracks every tab switch and paste event. If a candidate pastes a massive block of code or switches to a "Cheat Tab" too often, their **Employability Index** is penalized.
+*   **Rate Limiting**: Global and AI-specific limits prevent API abuse and manage LLM costs.
+*   **Decoupled Execution**: By using BullMQ, a sudden spike in 1,000 candidates coding at once won't crash the main API server; the workers handle it sequentially.
+
+---
+
+## 📁 5. Folder Hierarchy
+*   `/src`: Frontend source (Components, Hooks, Libs).
+    *   `/components`: High-fidelity UI pieces (IDE, Dashboard, Recruiter).
+*   `/backend/src`: 
+    *   `/controllers`: Business logic for Auth, Jobs, Assessments, and Recruiter.
+    *   `/models`: Mongoose schemas for everything from Users to Missions.
+    *   `/services`: Isolated logic for AI (Gemini), RAG, and Code Queuing.
+    *   `/db`: Connection logic and seed scripts (Elite Challenge Library).
+*   `docker-compose.yml`: Orchestrates the entire "OS" stack.
+
+---
+
+## 🚀 6. Monetization Layer
+*   **Free Tier**: Standard DSA challenges.
+*   **Premium Level**: "Enterprise Reality" challenges (Netflix CDN simulation, Uber Geo-sharding).
+*   **B2C Access**: Candidates can pay for "Clearance" to access elite company mock trials.
+*   **B2B Access**: Recruiters pay per campaign/candidate for pipeline intelligence.

@@ -41,7 +41,7 @@ export const ResultsModal = ({ score, totalTime, role, company, skillTags, onRes
     const saveResult = async () => {
       try {
         const token = localStorage.getItem('token');
-        await fetch('http://localhost:4000/api/jobs/save-result', {
+        await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/jobs/save-result`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export const ResultsModal = ({ score, totalTime, role, company, skillTags, onRes
     const fetchSuggestions = async () => {
       try {
         const prompt = `Based on a score of ${score}/100 in a ${role} simulation at ${company} (Time: ${timeStr}), provide 1 specific technical improvement and 1 career strategy suggestion. Max 2 sentences total.`;
-        const res = await fetch('http://localhost:4000/api/ai/analyze-resume', {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/ai/analyze-resume`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resumeText: prompt })

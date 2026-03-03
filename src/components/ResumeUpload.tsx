@@ -70,7 +70,7 @@ export const ResumeUpload = ({ onAnalyzeComplete }: ResumeUploadProps) => {
                 const formData = new FormData();
                 formData.append('resume', pendingFile);
 
-                res = await fetch('http://localhost:4000/api/ai/upload-resume', {
+                res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/ai/upload-resume`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -79,7 +79,7 @@ export const ResumeUpload = ({ onAnalyzeComplete }: ResumeUploadProps) => {
                 });
             } else {
                 // TEXT ANALYSIS
-                res = await fetch('http://localhost:4000/api/ai/analyze-resume', {
+                res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/ai/analyze-resume`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

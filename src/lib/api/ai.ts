@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:4000/api/ai";
+const API_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/ai`;
 
 export async function generateChallenge(payload: any) {
     const res = await fetch(`${API_URL}/generate`, {

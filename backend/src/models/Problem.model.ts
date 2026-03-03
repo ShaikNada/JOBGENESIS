@@ -18,7 +18,15 @@ const ProblemSchema = new Schema({
     python: { type: String, default: "" },
     java: { type: String, default: "" },
     cpp: { type: String, default: "" }
-  }
+  },
+  functionName: { type: String, default: "solution" },
+  testCases: [
+    {
+      input: Schema.Types.Mixed,
+      expected: Schema.Types.Mixed
+    }
+  ],
+  isPremium: { type: Boolean, default: false }
 });
 
 export const Problem = model("Problem", ProblemSchema);

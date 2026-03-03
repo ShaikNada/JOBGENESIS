@@ -1,0 +1,39 @@
+# 🚀 Real Product Roadmap (SaaS Transition)
+
+We are transitioning **JobGenesis** from a Hackathon MVP to an enterprise-grade, production-ready SaaS product. To do this, we need to focus on stability, security, scalability, marketing, and monetization.
+
+Here is the master roadmap to build the real product.
+
+## Phase 1: Authentication & User Management Hardening
+*   **OAuth Integration**: Finalize Google/GitHub OAuth login handling on the frontend.
+*   **Session Security**: Replace long-lived JWTs with strictly short-lived Access Tokens and HttpOnly Refresh Tokens.
+*   **Account Recovery**: Implement a "Forgot Password" flow with secure email links.
+*   **Email Engine**: Integrate Resend or SendGrid for transactional emails (welcome emails, interview summaries).
+
+## Phase 2: Production Infrastructure & Scalability
+*   **Managed Databases**: Migrate local MongoDB to **MongoDB Atlas** with proper connection pooling.
+*   **Cloud Object Storage**: Setup **AWS S3** or **Cloudflare R2** to store uploaded PDF resumes instead of keeping them in memory.
+*   **Caching Layer**: Integrate **Redis** to cache expensive AI generation requests and reduce our Google Gemini / Groq API bills.
+*   **Rate Limiting**: Implement strict Express rate limiting to prevent abuse of the code execution engine and AI routes.
+
+## Phase 3: Monetization (Stripe)
+*   **Freemium Model**: 
+    *   *Free Tier*: 1 free Gauntlet run, basic resume analysis.
+    *   *Pro Tier ($15/mo)*: Unlimited AI Interviews, advanced Python ML scoring, deep behavioral analytics.
+*   **Stripe Integration**: Add Stripe Checkout webhooks to upgrade user accounts in the database.
+
+## Phase 4: Production Deployment
+*   **Frontend Ecosystem**: Deploy the React Vite app globally on **Vercel** with a custom domain (e.g., `jobgenesis.ai`).
+*   **Node.js Core Backend**: Containerize with Docker and deploy to **Render** or **Railway**.
+*   **Python ML Engine**: Deploy the FastAPI microservice to **Railway** or AWS ECS for consistent performance models.
+*   **CI/CD Pipeline**: Set up **GitHub Actions** to automatically lint, test, and deploy code on every push to `master`.
+
+## Phase 5: Analytics & Growth
+*   **Analytics Tracking**: Add PostHog or Mixpanel to track where users drop off in the interview funnel.
+*   **Error Tracking**: Install Sentry.io to capture frontend crashes or backend API failures in real time.
+*   **SEO Optimization**: Add dynamic meta tags and a beautiful landing page to capture organic Google search traffic.
+
+---
+
+### Which module do you want to tackle immediately? 
+Most startups prioritize **Phase 1 (Auth & Emails)** or **Phase 4 (Deployment)** so they can start sharing the link with real users instantly.

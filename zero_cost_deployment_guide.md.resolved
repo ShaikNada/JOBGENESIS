@@ -1,0 +1,56 @@
+# 🌍 JobGenesis - $0 Enterprise Deployment Guide
+
+We've restructured the codebase to support a distributed, **Zero-Cost Production Deployment** using Vercel and Render. This circumvents Docker memory limitations and entirely eliminates AWS billing.
+
+I have already injected a [render.yaml](file:///d:/project/jobGenisis%281%29/coding-gauntlet/render.yaml) (Backend Blueprint) and [vercel.json](file:///d:/project/jobGenisis%281%29/coding-gauntlet/vercel.json) (Frontend Router) directly into your repository.
+
+### Prerequisites
+1.  **Commit Your Code**: Push all the latest changes (including [render.yaml](file:///d:/project/jobGenisis%281%29/coding-gauntlet/render.yaml) and [vercel.json](file:///d:/project/jobGenisis%281%29/coding-gauntlet/vercel.json)) to your GitHub repository.
+2.  **Databases**: 
+    - Keep using your **MongoDB Atlas** Free Cluster.
+    - Create a Free Serverless Redis database at **[Upstash](https://upstash.com/)** and copy the `REDIS_URI`.
+
+---
+
+## 🟢 Phase 1: Deploying the Backends (Render)
+Render allows us to host the Node.js API and the Python ML Engine as two completely separate microservices for free.
+
+1.  Create an account at **[Render.com](https://render.com/)**.
+2.  Go to your Dashboard and click **New+** -> **Blueprint**.
+3.  Connect your GitHub account and select your `jobgenesis` repository.
+4.  Render will automatically detect the [render.yaml](file:///d:/project/jobGenisis%281%29/coding-gauntlet/render.yaml) file I created for you. It will recognize two services: `jobgenesis-api` and `jobgenesis-ml`.
+5.  Click **"Apply"**.
+6.  **Crucial Step**: Go to the **Environment** tab in your Render dashboard for `jobgenesis-api`. You *must* securely input the following missing values:
+    *   `MONGO_URI`
+    *   `JWT_SECRET`
+    *   `GEMINI_API_KEY`
+    *   `REDIS_URI` (from Upstash)
+7.  Go to the **Environment** tab for `jobgenesis-ml` and input:
+    *   `MONGO_URI`
+
+*Note: Allow 5-10 minutes for Render to build the Node and Python environments.*
+
+---
+
+## 🔵 Phase 2: Deploying the Frontend (Vercel)
+Vercel is the fastest, most reliable global host for React/Vite applications.
+
+1.  Copy the URL of your new Render Node.js backend (e.g., `https://jobgenesis-api.onrender.com`).
+2.  Log in to **[Vercel.com](https://vercel.com/)**.
+3.  Click **Add New...** -> **Project**.
+4.  Import your `jobgenesis` GitHub repository.
+5.  In the "Configure Project" screen, drop down the **Environment Variables** section and add:
+    *   **Name**: `VITE_BACKEND_URL`
+    *   **Value**: `https://jobgenesis-api.onrender.com` *(Paste your actual Render URL here without a trailing slash).*
+6.  Go back to Render, find `jobgenesis-api` -> Environment, and add your new Vercel URL as the `FRONTEND_URL` so CORS allows the connection.
+7.  In Vercel, click **Deploy**.
+
+---
+
+### 🎉 Congratulations
+Within minutes, you will have a globally distributed, microservice-based AI Recruiting Platform running completely for free. 
+*   Vercel acts as your Edge CDN.
+*   Render acts as your heavy-lifting computation cluster.
+*   MongoDB and Upstash act as your serverless data layer. 
+
+JobGenesis OS is now ready for world-class candidate traffic.

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { fetchRealJobs } from "../services/jobs/jobSearchService";
 import { askAI } from "../services/ai/modelRouter";
 import { Mission } from "../models/Mission.model";
+import { processMissionForCAL } from "../services/ai/calService";
 import { User } from "../models/User.model";
 import { executeCareerPathAnalysis } from "../services/jobs/careerPathService";
 
@@ -78,28 +79,107 @@ export const analyzeTargetPath = async (req: Request, res: Response) => {
   }
 };
 
+// @desc    Start a new mission (creates entry for tracking)
+// @route   POST /api/jobs/start-mission
+export const startMission = async (req: Request, res: Response) => {
+  try {
+    const { role, company, campaignId } = req.body;
+    const userId = (req as any).user?._id;
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const mission = await Mission.create({
+      userId,
+      role,
+      company,
+      campaignId: campaignId || undefined,
+      score: 0,
+      rank: "B", // Initial rank
+      progression: {
+        assessmentStartedAt: new Date()
+      }
+    });
+
+    res.status(201).json(mission);
+  } catch (error) {
+    console.error("Start Mission Error:", error);
+    res.status(500).json({ message: "Failed to initialize mission" });
+  }
+};
+
+// @desc    Update mission progression
+// @route   PATCH /api/jobs/mission/:id/progress
+export const updateMissionProgress = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { stage } = req.body; // e.g. 'coding-started'
+
+    const mission = await Mission.findById(id);
+    if (!mission) return res.status(404).json({ message: "Mission not found" });
+
+    const progression: any = mission.progression || {};
+    const now = new Date();
+
+    if (stage === 'assessment-completed') progression.assessmentCompletedAt = now;
+    if (stage === 'coding-started') progression.codingStartedAt = now;
+    if (stage === 'coding-completed') progression.codingCompletedAt = now;
+    if (stage === 'interview-started') progression.interviewStartedAt = now;
+    if (stage === 'interview-completed') progression.interviewCompletedAt = now;
+
+    mission.progression = progression;
+    await mission.save();
+
+    res.json(mission);
+  } catch (error) {
+    res.status(500).json({ message: "Update failed" });
+  }
+};
+
 // @desc    Save mission result
 // @route   POST /api/jobs/save-result
 export const saveMissionResult = async (req: Request, res: Response) => {
   try {
-    const { role, company, score, rank, feedback, skillTags } = req.body;
+    const { missionId, role, company, score, rank, feedback, skillTags, employabilityIndex, telemetry } = req.body;
     const userId = (req as any).user?._id;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const mission = await Mission.create({
-      userId,
-      role,
-      company,
-      score,
-      rank,
-      feedback,
-      skillTags: skillTags || [],
-    });
+    let mission;
+    if (missionId) {
+      mission = await Mission.findById(missionId);
+      if (mission) {
+        mission.score = score;
+        mission.rank = rank;
+        mission.feedback = feedback;
+        mission.skillTags = skillTags || [];
+        mission.employabilityIndex = employabilityIndex || 0;
+        mission.telemetry = telemetry || mission.telemetry;
+        mission.completedAt = new Date();
+        await mission.save();
+      }
+    }
+
+    if (!mission) {
+      mission = await Mission.create({
+        userId,
+        role,
+        company,
+        score,
+        rank,
+        feedback,
+        skillTags: skillTags || [],
+        employabilityIndex: employabilityIndex || 0,
+        telemetry: telemetry || undefined,
+        completedAt: new Date()
+      });
+    }
 
     res.status(201).json(mission);
+
+    // 🔄 Fire-and-forget CAL feedback loop (anonymized)
+    processMissionForCAL(mission);
   } catch (error) {
     console.error("Save Mission Error:", error);
     res.status(500).json({ message: "Failed to save mission result" });

@@ -66,7 +66,7 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
     useEffect(() => {
         const fetchMatches = async () => {
             try {
-                const res = await fetch('http://localhost:4000/api/jobs/match', {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/jobs/match`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ resumeData })
@@ -97,13 +97,13 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
             // Run BOTH analyses in parallel for speed
             const [pathRes, gapRes] = await Promise.allSettled([
                 // 1. AI Coach (Gemini) - qualitative
-                fetch('http://localhost:4000/api/jobs/target-path', {
+                fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/jobs/target-path`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ resumeData, targetRole, targetCompany, level: selectedLevel })
                 }).then(r => r.json()),
                 // 2. Domain #74 Math Engine - deterministic
-                fetch('http://localhost:4000/api/skill-gap/analyze', {
+                fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/skill-gap/analyze`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({

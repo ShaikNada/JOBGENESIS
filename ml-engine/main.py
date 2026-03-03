@@ -53,6 +53,32 @@ def analyze_skills(req: AnalyzeRequest):
             confidenceScore=classification_result["confidence"],
             recommendations=recs
         )
+@app.post("/api/ml/train")
+def train_model():
+    """
+    Vanguard CAL Implementation: Fetches anonymized training data from MongoDB and retrains the local KNN model.
+    """
+    from db import db
+    try:
+        # Fetch from MongoDB 'trainingdatas' collection
+        cursor = db.trainingdatas.find({}, {"score": 1, "skillTags": 1, "finalRank": 1})
+        new_data = []
+        for doc in cursor:
+            # Map MongoDB fields to feature matrix
+            match_count = len(doc.get("skillTags", []))
+            # Heuristic: if score is high, gap is low
+            missing_count = 10 - match_count if match_count < 10 else 0
+            
+            new_data.append({
+                "match_count": match_count,
+                "missing_count": missing_count,
+                "total_required": match_count + missing_count,
+                "label": doc.get("finalRank", "C")
+            })
+            
+        from classifier import sync_and_retrain
+        sync_and_retrain(new_data)
+        return {"status": "Success", "samples_trained": len(new_data)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,43 +1,45 @@
 import spacy
+from db import skills_collection
 
-# Load the small English NLP model. In production, we'd use a custom NER model
+# Load the small English NLP model.
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    # Fallback if model isn't downloaded yet during demo
+    # Fallback if model isn't downloaded yet
     import os
     os.system("python -m spacy download en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
 
-# A set of known technical skills to help the basic NLP model extract them
-KNOWN_SKILLS = {
-    "javascript", "typescript", "react", "vue", "angular", "node.js", "python", 
-    "java", "c++", "go", "ruby", "php", "sql", "postgresql", "mysql", "mongodb", 
-    "redis", "aws", "gcp", "azure", "docker", "kubernetes", "linux", "git", 
-    "ci/cd", "machine learning", "data structures", "algorithms", "system design"
-}
+def get_known_skills() -> set:
+    """
+    Fetches the valid tech skills dynamically from the MongoDB collection.
+    """
+    skills_cursor = skills_collection.find({}, {"name": 1})
+    return {doc["name"].lower() for doc in skills_cursor if "name" in doc}
 
 def extract_skills_spacy(text: str) -> list[str]:
     """
-    Uses spaCy NLP to tokenize and extract technical skills from raw text.
-    Replaces simple regex with actual named entity recognition logic.
+    Uses spaCy NLP to tokenize and extract technical skills from raw text,
+    verifying them against our dynamic MongoDB database.
     """
     if not text:
         return []
+
+    # Dynamically fetch known skills from DB
+    known_skills = get_known_skills()
 
     doc = nlp(text.lower())
     extracted = set()
 
     # 1. Look for recognized tech entities (PROPN, NOUN)
     for token in doc:
-        # Check against our known dictionary for exact matches
-        if token.text in KNOWN_SKILLS:
+        if token.text in known_skills:
             extracted.add(token.text)
             
     # 2. Extract multi-word skills (Noun Chunks) like "system design"
     for chunk in doc.noun_chunks:
         chunk_text = chunk.text.strip()
-        if chunk_text in KNOWN_SKILLS:
+        if chunk_text in known_skills:
             extracted.add(chunk_text)
 
     return list(extracted)
