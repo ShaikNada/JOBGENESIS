@@ -1,30 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #050505;
-  color: #e5e5e5;
-  font-family: 'JetBrains Mono', monospace;
-  overflow: hidden;
+:root {
+  /* Default Dark Theme Variables (Cyberpunk Style) */
+  --bg-color: #050505;
+  --text-color: #e5e5e5;
+  --panel-bg: rgba(10, 10, 15, 0.5);
+  --border-color: rgba(255, 255, 255, 0.05);
+
+  --neon-red: #ff003c;
+  --neon-blue: #00f0ff;
+
+  /* Mesh Gradients */
+  --mesh-center: #0a0a0f;
+  --mesh-edge: #050505;
 }
 
-/* CRT Scanline Effect */
-body::after {
-  content: "";
-  position: absolute;
+html.light {
+  /* Light Theme Variables (Clean Corporate Style) */
+  --bg-color: #f7f9fc;
+  --text-color: #1a1a24;
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --border-color: rgba(0, 0, 0, 0.1);
+
+  --neon-red: #e11d48;
+  /* Softer red for light mode */
+  --neon-blue: #2563eb;
+  /* Softer blue for light mode */
+
+  /* Mesh Gradients */
+  --mesh-center: #ffffff;
+  --mesh-edge: #f0f4f8;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Mesh Gradient Background Animation */
+.mesh-gradient {
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: repeating-linear-gradient(0deg,
-      rgba(0, 0, 0, 0.15),
-      rgba(0, 0, 0, 0.15) 1px,
-      transparent 1px,
-      transparent 2px);
-  pointer-events: none;
-  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 50%, var(--mesh-center) 0%, var(--mesh-edge) 100%);
+  overflow: hidden;
+  transition: background 0.3s ease;
 }
+
+.mesh-gradient::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 30, 86, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(0, 240, 255, 0.05) 0%, transparent 50%);
+  animation: mesh-rotate 30s linear infinite;
+}
+
+@keyframes mesh-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 
 /* --- NEW SCROLLBAR STYLES --- */
 ::-webkit-scrollbar {
@@ -40,9 +94,8 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ff003c;
-  /* Neon Red */
-  border: 2px solid #0f0f0f;
+  background: var(--neon-red);
+  border: 2px solid var(--bg-color);
   /* Adds a padding effect */
   border-radius: 4px;
 }
@@ -52,14 +105,21 @@ body::after {
 }
 
 .glass {
-  @apply bg-dark-900/40 backdrop-blur-xl border border-white/5;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background-color: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Glass Card - Used in ResumePreview */
 .glass-card {
-  @apply bg-dark-900/50 backdrop-blur-xl rounded-lg;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  background-color: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Neon Text Glow */

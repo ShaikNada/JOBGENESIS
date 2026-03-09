@@ -4,7 +4,7 @@ dotenv.config();
 
 import { app } from "./app";
 import { connectDB } from "./db/connect";
-import { registerUser, loginUser, googleAuth, verifyEmail } from "./controllers/auth.controller";
+import { registerUser, loginUser, googleAuth, verifyEmail, getMe } from "./controllers/auth.controller";
 import { matchJobs, analyzeGap, analyzeTargetPath, saveMissionResult, getUserMissions, startMission, updateMissionProgress } from "./controllers/job.controller";
 import { processMissionForCAL } from "./services/ai/calService";
 import { extractTextAndAnalyze, analyzePlainResumeText } from "./controllers/resume.controller";
@@ -35,10 +35,13 @@ const authRouter = express.Router();
 app.use("/api/auth", globalLimiter, authRouter);
 
 
+import { protect } from "./middleware/auth.middleware";
+
 authRouter.post("/register", registerUser);
 authRouter.post("/login", loginUser);
 authRouter.post("/google", googleAuth);
 authRouter.get("/verify-email/:token", verifyEmail);
+authRouter.get("/me", protect, getMe);
 
 import { protect } from "./middleware/auth.middleware";
 
@@ -56,8 +59,8 @@ jobRouter.get("/history", protect, getUserMissions);
 const aiRouter = express.Router();
 aiRouter.post("/match", matchJobs); // Some components might use /api/ai/match
 aiRouter.post("/gap-analysis", analyzeGap);
-aiRouter.post("/upload-resume", upload.single("resume"), extractTextAndAnalyze);
-aiRouter.post("/analyze-resume", analyzePlainResumeText);
+aiRouter.post("/upload-resume", protect, upload.single("resume"), extractTextAndAnalyze);
+aiRouter.post("/analyze-resume", protect, analyzePlainResumeText);
 
 app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobRouter);

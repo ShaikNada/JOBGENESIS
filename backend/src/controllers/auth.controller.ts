@@ -18,7 +18,7 @@ const generateToken = (id: string) => {
 // @route   POST /api/auth/register
 export const registerUser = async (req: Request, res: Response) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({ message: "Please fill all fields" });
@@ -37,6 +37,7 @@ export const registerUser = async (req: Request, res: Response) => {
             name,
             email,
             password,
+            role: role === "recruiter" ? "recruiter" : "candidate",
             authProvider: "local",
             isVerified: isDev, // AUTO-VERIFY IN DEV
             verificationToken: isDev ? undefined : verificationToken,
@@ -60,6 +61,7 @@ export const registerUser = async (req: Request, res: Response) => {
             res.status(201).json({
                 message: "Registration successful. Please check your email to verify your identity.",
                 email: user.email,
+                role: user.role,
             });
         } else {
             res.status(400).json({ message: "Invalid user data" });
@@ -107,6 +109,8 @@ export const loginUser = async (req: Request, res: Response) => {
                 _id: user.id,
                 name: user.name,
                 email: user.email,
+                role: user.role,
+                resumeData: user.resumeData,
                 token: generateToken(user.id),
             });
         } else {
@@ -160,12 +164,27 @@ export const googleAuth = async (req: Request, res: Response) => {
             _id: user.id,
             name: user.name,
             email: user.email,
+            role: user.role,
             avatar: user.avatar,
+            resumeData: user.resumeData,
             token: generateToken(user.id),
         });
 
     } catch (error) {
         console.error("Google Auth Error:", error);
         res.status(401).json({ message: "Google authentication failed", error });
+    }
+};
+// @desc    Get current user profile
+// @route   GET /api/auth/me
+export const getMe = async (req: Request, res: Response) => {
+    try {
+        const user = await User.findById((req as any).user?._id).select("-password");
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
     }
 };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Trophy, Code2, BrainCircuit, Activity, Clock, Zap, Target, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ReportProps {
     score: number;
@@ -31,7 +32,7 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
 
                 // 1. Fetch ML Metrics first (Domain #74)
                 const pseudoResume = skillTags.join(", ");
-                const mlRes = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/skill-gap/analyze', {
+                const mlRes = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/skill-gap/analyze`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({
@@ -48,7 +49,7 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
                 }
 
                 // 2. Save the complete mission result including Employability Index
-                const res = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/jobs/save-result', {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/jobs/save-result`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -82,7 +83,11 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
         <div className="w-full h-full bg-dark-950 overflow-y-auto p-8 relative">
             <div className="max-w-6xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-900/40 to-dark-900 border border-purple-500/30 p-8 rounded-2xl flex items-center justify-between">
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-gradient-to-r from-purple-900/40 to-dark-900 border border-purple-500/30 p-8 rounded-2xl flex items-center justify-between">
                     <div>
                         <h1 className="text-4xl font-black text-white mb-2 flex items-center gap-3">
                             <Trophy className="text-yellow-400 w-10 h-10" />
@@ -90,14 +95,19 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
                         </h1>
                         <p className="text-purple-300 font-mono text-lg">Target: {role} @ {company}</p>
                     </div>
-                    <button onClick={onRestart} className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-                        Return to Dashboard
+                    <button onClick={onRestart} className="relative px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] overflow-hidden group">
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        <span className="relative z-10">Return to Dashboard</span>
                     </button>
-                </div>
+                </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Column 1: Code Execution & Interview */}
-                    <div className="space-y-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="space-y-6">
                         {/* Coding Stats */}
                         <div className="bg-dark-900 border border-dark-700 p-6 rounded-xl">
                             <div className="flex items-center gap-3 text-neon-red mb-6 border-b border-dark-700 pb-4">
@@ -147,10 +157,14 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
                                 <p className="text-slate-300 text-sm italic">"{interviewData.interviewFeedback}"</p>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Column 2 & 3: Domain #74 ML Engine Output */}
-                    <div className="col-span-2 bg-dark-900 border border-blue-500/30 p-6 rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.1)]">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.3 }}
+                        className="col-span-2 bg-dark-900 border border-blue-500/30 p-6 rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.1)]">
                         <div className="flex items-center gap-3 text-blue-400 mb-6 border-b border-dark-700 pb-4">
                             <Target className="w-6 h-6" />
                             <h2 className="text-xl font-bold font-mono uppercase tracking-widest text-white">Employability Index (Domain #74)</h2>
@@ -213,9 +227,15 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
                                                             <span className="bg-blue-900/30 text-blue-400 px-2 rounded-sm">{rec.resources?.[0]?.type || "Course"}</span>
                                                         </div>
                                                     </div>
-                                                    <a href={rec.resources?.[0]?.url || "#"} target="_blank" rel="noreferrer" className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        View &rarr;
-                                                    </a>
+                                                    {rec.resources?.[0]?.url ? (
+                                                        <a href={rec.resources[0].url} target="_blank" rel="noreferrer" className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            View &rarr;
+                                                        </a>
+                                                    ) : (
+                                                        <button onClick={() => alert('Course link currently unavailable.')} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            View &rarr;
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -223,7 +243,7 @@ export function DetailedReportView({ score, mcqScore, totalTime, role, company, 
                                 )}
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

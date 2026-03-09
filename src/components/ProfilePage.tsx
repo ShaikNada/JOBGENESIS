@@ -63,7 +63,7 @@ export const ProfilePage = ({ user, resumeData, onBack, onLogout }: ProfilePageP
                         className="text-xs text-dark-500 hover:text-white transition-colors flex items-center gap-2 group"
                     >
                         <ChevronRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={14} />
-                        RETURN TO HUB
+                        BACK TO DASHBOARD
                     </button>
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ export const ProfilePage = ({ user, resumeData, onBack, onLogout }: ProfilePageP
                             onClick={onLogout}
                             className="text-[10px] text-dark-500 hover:text-neon-red border border-dark-800 hover:border-neon-red/50 px-3 py-1.5 rounded transition-all font-black"
                         >
-                            TERMINATE SESSION
+                            LOGOUT
                         </button>
                     </div>
                 </header>
@@ -135,12 +135,12 @@ export const ProfilePage = ({ user, resumeData, onBack, onLogout }: ProfilePageP
                     <div className="md:col-span-8">
                         <div className="bg-dark-900/50 border border-dark-800 rounded-2xl p-8 min-h-[500px]">
                             <h3 className="text-xl font-black mb-8 flex items-center gap-3">
-                                <Award className="text-neon-red" /> MISSION ARCHIVE
+                                <Award className="text-neon-red" /> MISSION HISTORY
                             </h3>
 
                             {isLoading ? (
                                 <div className="flex justify-center items-center h-64 text-dark-500">
-                                    <Cpu className="animate-spin mr-2" /> ACCESSING ENCRYPTED RECORDS...
+                                    <Cpu className="animate-spin mr-2" /> Loading history...
                                 </div>
                             ) : history.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-64 text-dark-600 border-2 border-dashed border-dark-800 rounded-xl">

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Problem } from '../models/Problem.model.ts';
+import { Problem } from '../models/Problem.model';
 import dotenv from 'dotenv';
 
 dotenv.config();

@@ -14,9 +14,11 @@ interface Props {
   role: string;
   company: string;
   experienceLevel: string;
+  difficulty?: 'easy' | 'normal' | 'hard';
+  onComplete: (score: number, finalCode: string) => void;
 }
 
-export const IdeLayout = ({ role, company, experienceLevel }: Props) => {
+export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal', onComplete }: Props) => {
   const { warnings: _warnings } = useAntiCheat(); // Prefixed with _ to indicate unused but kept for hook activation
   const { timeLeft, startTimer, stopTimer, formatTime } = useTimer(45);
   const mounted = useRef(false);
@@ -50,7 +52,7 @@ export const IdeLayout = ({ role, company, experienceLevel }: Props) => {
 
       // FIX: Added '_v2' to force refresh of cached data so new backend logic runs
       try {
-        const data = await generateCodingChallenge(role, company, stage, experienceLevel);
+        const data = await generateCodingChallenge(role, company, stage, experienceLevel, difficulty);
 
         if (data) {
           setProblem(data);
@@ -147,7 +149,11 @@ export const IdeLayout = ({ role, company, experienceLevel }: Props) => {
       setStage(prev => prev + 1);
       startTimer();
     } else {
-      setShowResults(true);
+      if (onComplete) {
+        onComplete(score, codeSnippets[language] || "");
+      } else {
+        setShowResults(true);
+      }
     }
   };
 

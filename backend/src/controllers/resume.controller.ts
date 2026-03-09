@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { analyzeResume } from "../services/ai/resumeService";
 import { createRequire } from "module";
+import { User } from "../models/User.model";
 const cjsRequire = createRequire(import.meta.url);
 
 export const extractTextAndAnalyze = async (req: Request, res: Response) => {
@@ -56,6 +57,13 @@ export const extractTextAndAnalyze = async (req: Request, res: Response) => {
         // Now analyze the extracted text
         const analysis = await analyzeResume(resumeText);
 
+        // PERSIST TO USER PROFILE IF AUTHENTICATED
+        const userId = (req as any).user?._id;
+        if (userId) {
+            await User.findByIdAndUpdate(userId, { resumeData: analysis });
+            console.log("💾 Analysis persisted to user profile:", userId);
+        }
+
         console.log("✅ AI Analysis complete:", {
             name: analysis.personalInfo?.name,
             skillsCount: analysis.skills?.length,
@@ -83,6 +91,12 @@ export const analyzePlainResumeText = async (req: Request, res: Response) => {
         console.log("🤖 Sending to AI for analysis...");
 
         const analysis = await analyzeResume(resumeText);
+
+        const userId = (req as any).user?._id;
+        if (userId) {
+            await User.findByIdAndUpdate(userId, { resumeData: analysis });
+            console.log("💾 Plain text analysis persisted to user profile:", userId);
+        }
 
         console.log("✅ AI Analysis complete:", {
             name: analysis.personalInfo?.name,

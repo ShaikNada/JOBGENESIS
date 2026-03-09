@@ -12,14 +12,16 @@ interface Question {
 interface TechnicalExamProps {
     role: string;
     company: string;
-    level: string;
+    levelMenu?: string;
     focus?: string;
+    level?: string;
+    difficulty?: 'easy' | 'normal' | 'hard';
     onFinish: (score: number) => void;
 }
 
 import { fetchTechnicalExam } from '../lib/api/ai';
 
-export const TechnicalExam = ({ role, company, level, focus, onFinish }: TechnicalExamProps) => {
+export const TechnicalExam = ({ role, company, level, focus, difficulty = 'normal', onFinish }: TechnicalExamProps) => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -32,7 +34,7 @@ export const TechnicalExam = ({ role, company, level, focus, onFinish }: Technic
     useEffect(() => {
         const fetchQuestions = async () => {
             try {
-                const data = await fetchTechnicalExam({ role, company, level, focus });
+                const data = await fetchTechnicalExam({ role, company, level, focus, difficulty });
                 setQuestions(data);
                 setIsLoading(false);
             } catch (err) {

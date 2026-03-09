@@ -1,5 +1,6 @@
 import { codeQueue } from "./queue";
 import { Problem } from "../../models/Problem.model";
+import { runJavaScript } from "./jsRunner";
 
 export async function deterministicJudge(payload: any) {
   const { code, language, problemId } = payload;
@@ -14,6 +15,17 @@ export async function deterministicJudge(payload: any) {
 
   const problem = await Problem.findById(problemId);
   if (!problem) return fail("Problem not found");
+
+  // Fallback to direct execution if Redis/Queue is unavailable
+  if (!codeQueue) {
+    console.log("[Judge] Redis Queue unavailable, falling back to direct execution");
+    try {
+      const result = await runJavaScript(code, problem.testCases, problem.functionName);
+      return result;
+    } catch (err: any) {
+      return fail("Direct execution failed: " + err.message);
+    }
+  }
 
   // Add to queue and wait for the worker to process it
   const job = await codeQueue.add('execute', {

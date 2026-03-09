@@ -29,7 +29,7 @@ export function McqAssessment({ role, company, experienceLevel, onComplete }: Mc
         const fetchAssessment = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/assessment/generate', {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/assessment/generate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ role, company, experienceLevel })
@@ -80,7 +80,7 @@ export function McqAssessment({ role, company, experienceLevel, onComplete }: Mc
         setSubmitting(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/assessment/submit', {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/assessment/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ assessmentId, answers })

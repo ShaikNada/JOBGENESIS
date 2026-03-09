@@ -12,10 +12,11 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@monaco-editor/react": "^4.7.0",
+    "@react-oauth/google": "^0.13.4",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^4.22.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.23.26",
+    "framer-motion": "^12.34.5",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-confetti": "^6.4.0",
@@ -24,6 +25,8 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.2.0",
     "react-webcam": "^7.2.0",
+    "rechart": "^0.0.1",
+    "recharts": "^3.7.0",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.4.0"
   },

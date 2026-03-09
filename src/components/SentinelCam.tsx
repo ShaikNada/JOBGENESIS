@@ -1,7 +1,7 @@
 import Webcam from "react-webcam";
 import { useRef, useState } from "react";
 import { useProctorAI } from "../hooks/useProctorAI";
-import { ShieldAlert, ShieldCheck, Scan, Eye } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Scan } from "lucide-react";
 import clsx from "clsx";
 
 interface Props {
@@ -13,17 +13,17 @@ export const SentinelCam = ({ onStrike }: Props) => {
   const [violation, setViolation] = useState<string | null>(null);
 
   // Hook into the AI
-  const { status, isModelLoading } = useProctorAI(webcamRef, (reason) => {
+  const { status } = useProctorAI(webcamRef, (reason) => {
     setViolation(reason);
     onStrike(reason);
-    
+
     // Clear violation visual after 3 seconds so it flashes
     setTimeout(() => setViolation(null), 3000);
   });
 
   return (
     <div className="relative w-full h-full bg-black rounded-lg overflow-hidden border-2 border-dark-700 shadow-lg group">
-      
+
       {/* THE CAMERA FEED */}
       <Webcam
         ref={webcamRef}
@@ -33,7 +33,7 @@ export const SentinelCam = ({ onStrike }: Props) => {
       />
 
       {/* CYBERPUNK OVERLAYS */}
-      
+
       {/* 1. Scanning Line Animation */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_0%,rgba(255,0,60,0.1)_50%,transparent_100%)] bg-[length:100%_200%] animate-scan-fast" />
 

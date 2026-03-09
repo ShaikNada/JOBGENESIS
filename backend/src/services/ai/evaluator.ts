@@ -19,17 +19,18 @@ export async function generateChallenge(payload: any) {
       const domainPrompt = buildDomainSpecificPrompt({
         role: payload.role || "Software Engineer",
         experienceLevel: payload.experienceLevel || "Mid",
-        company: payload.company || "Tech Corp"
+        company: payload.company || "Tech Corp",
+        difficulty: payload.difficulty || "normal"
       });
 
       const raw = await askAI(domainPrompt);
       const cleaned = raw.replace(/```json|```/g, "").trim();
       aiData = JSON.parse(cleaned);
 
-      // 💾 PERSISTENCE: Save this new problem to DB
+      let createdId = `ai-${Date.now()}`;
       try {
         const newProblem = await Problem.create({
-          id: `ai-${Date.now()}`,
+          id: createdId,
           title: aiData.title,
           difficulty: aiData.difficulty || "Medium",
           description: aiData.description,
@@ -43,12 +44,14 @@ export async function generateChallenge(payload: any) {
           tags: ["AI-Generated", payload.role || "General"],
           companies: [payload.company || "Unknown"]
         });
+        createdId = newProblem._id.toString();
         console.log("✅ AI Problem Saved to DB:", newProblem._id);
       } catch (dbErr) {
         console.error("⚠️ Failed to save AI problem to DB:", dbErr);
       }
 
       return {
+        id: createdId,
         title: aiData.title,
         description: aiData.description,
         starterCode: aiData.starterCode,
@@ -59,10 +62,11 @@ export async function generateChallenge(payload: any) {
 
     // 🟢 STANDARD ROUNDS (1 & 2) - Existing Logic
     // 1️⃣ Build AI prompt from REAL DB problem
+    // 1️⃣ Build AI prompt from REAL DB problem
     const prompt = buildGeneratePrompt({
       title: problem.title || "",
       description: problem.description || "",
-      difficulty: problem.difficulty || "",
+      difficulty: payload.difficulty || problem.difficulty || "normal",
       starterCode: problem.starterCode || ""
     });
 
@@ -88,6 +92,7 @@ export async function generateChallenge(payload: any) {
     const dbStarter = problem.starterCode as any;
 
     return {
+      id: problem._id,
       title: problem.title,
       description: problem.description,
       starterCode: {
@@ -121,6 +126,7 @@ export async function generateChallenge(payload: any) {
     // Fallback to DB data
     const dbStarter = problem.starterCode as any;
     return {
+      id: problem._id,
       title: problem.title,
       description: problem.description,
       starterCode: {
@@ -134,6 +140,7 @@ export async function generateChallenge(payload: any) {
     };
   }
 }
+
 
 
 /**
@@ -235,10 +242,10 @@ export async function analyzeComplexity(payload: any) {
  * Generate a Hint
  */
 export async function generateHint(payload: any) {
-  const { code, problemDescription, language } = payload;
+  const { code, problemDescription, language, difficulty } = payload;
   const { buildHintPrompt } = await import("./promptBuilder");
 
-  const prompt = buildHintPrompt(code, problemDescription, language);
+  const prompt = buildHintPrompt(code, problemDescription, language, difficulty || "normal");
   const raw = await askAI(prompt);
 
   try {
@@ -262,7 +269,8 @@ export async function generateTechnicalExam(payload: any) {
     role: payload.role || "Software Engineer",
     experienceLevel: payload.experienceLevel || "Mid",
     company: payload.company || "Tech Corp",
-    topic: payload.focus
+    topic: payload.focus,
+    difficulty: payload.difficulty || "normal"
   });
 
   const raw = await askAI(prompt);

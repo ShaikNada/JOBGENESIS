@@ -162,7 +162,9 @@ export const ResultsModal = ({ score, totalTime, role, company, skillTags, onRes
 
           {/* ACTION BUTTONS */}
           <div className="flex gap-3 pt-4 border-t border-dark-800">
-            <button className="flex-1 flex items-center justify-center gap-2 bg-dark-800 hover:bg-dark-700 text-white py-4 rounded-xl border border-dark-700 transition-all font-mono text-xs uppercase group">
+            <button
+              onClick={() => alert('PDF Export rendering engine initializing...')}
+              className="flex-1 flex items-center justify-center gap-2 bg-dark-800 hover:bg-dark-700 text-white py-4 rounded-xl border border-dark-700 transition-all font-mono text-xs uppercase group">
               <Download size={16} className="group-hover:text-neon-red transition-colors" /> Export Asset
             </button>
             <button

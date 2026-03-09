@@ -5,12 +5,28 @@ const REDIS_URI = process.env.REDIS_URI;
 let redisClient: Redis | null = null;
 const memoryCache = new Map<string, { value: any, expiresAt: number | null }>();
 
-if (REDIS_URI) {
-    redisClient = new Redis(REDIS_URI);
-    redisClient.on('connect', () => console.log('🟢 Redis Connected successfully'));
-    redisClient.on('error', (err) => console.error('🔴 Redis Connection Error:', err));
+if (REDIS_URI && REDIS_URI !== 'false') {
+    try {
+        redisClient = new Redis(REDIS_URI, {
+            maxRetriesPerRequest: 1,
+            connectTimeout: 5000,
+            retryStrategy: (times) => {
+                if (times > 1) return null; // stop retrying after 1 attempt
+                return 2000;
+            }
+        });
+        redisClient.on('connect', () => console.log('🟢 Redis Connected successfully'));
+        redisClient.on('error', (err) => {
+            console.error('🔴 Redis Connection Error:', err.message);
+            // We don't nullify here as ioredis might recover, 
+            // but the fail-fast strategy above prevents app hang.
+        });
+    } catch (err) {
+        console.error('🔴 Failed to initialize Redis client:', err);
+        redisClient = null;
+    }
 } else {
-    console.warn('⚠️ WARNING: REDIS_URI not found. Using local in-memory fallback. This is not suitable for scale.');
+    console.warn('⚠️ WARNING: REDIS_URI not found or disabled. Using local in-memory fallback.');
 }
 
 /**

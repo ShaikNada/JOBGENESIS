@@ -9,10 +9,11 @@ interface InterviewRoomProps {
     problemDescription: string;
     targetRole: string;
     company: string;
+    difficulty?: 'easy' | 'normal' | 'hard';
     onComplete: (result: any) => void;
 }
 
-export function AiInterviewRoom({ code, problemTitle, problemDescription, targetRole, company, onComplete }: InterviewRoomProps) {
+export function AiInterviewRoom({ code, problemTitle, problemDescription, targetRole, company, difficulty = 'normal', onComplete }: InterviewRoomProps) {
     const { isRecording, transcript, startRecording, stopRecording } = useSpeechRecognition();
     const [question, setQuestion] = useState<string | null>(null);
     const [loadingQuestion, setLoadingQuestion] = useState(true);
@@ -23,10 +24,10 @@ export function AiInterviewRoom({ code, problemTitle, problemDescription, target
         const startInterview = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/interview/start', {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/interview/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ code, problemTitle, problemDescription, targetRole, company })
+                    body: JSON.stringify({ code, problemTitle, problemDescription, targetRole, company, difficulty })
                 });
 
                 if (!res.ok) throw new Error("Failed to generate question");
@@ -73,7 +74,7 @@ export function AiInterviewRoom({ code, problemTitle, problemDescription, target
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}`}/api/interview/evaluate', {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/interview/evaluate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ code, targetRole, question, transcript })

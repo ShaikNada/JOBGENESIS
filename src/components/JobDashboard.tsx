@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Target, ArrowRight, Building2, Zap, Loader2, Search, Code, Terminal, Cpu, Globe, Server, Shield, Database, Smartphone, Lock, Activity, Layers, Cloud } from 'lucide-react';
-
+import { usePreferences } from '../hooks/usePreferences';
 import { toast } from 'react-hot-toast';
+import { ThemeToggle } from './ThemeToggle';
 
 interface JobDashboardProps {
     userName: string;
@@ -26,6 +27,7 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
 
     const [autoMatchedJobs, setAutoMatchedJobs] = useState<any[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+    const { difficulty, setDifficulty } = usePreferences();
 
     const ROLES = [
         { id: 'Frontend Engineer', label: 'Frontend Engineer', icon: Globe, desc: 'React, Vue, UI/UX' },
@@ -133,12 +135,15 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                             <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-purple-500 uppercase">
                                 Welcome Back, {userName}
                             </h1>
-                            <button
-                                onClick={onLogout}
-                                className="text-[10px] text-dark-500 hover:text-neon-red font-black border border-dark-800 hover:border-neon-red/50 px-3 py-1 rounded transition-all"
-                            >
-                                LOGOUT
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <ThemeToggle />
+                                <button
+                                    onClick={onLogout}
+                                    className="text-[10px] text-dark-500 hover:text-neon-red font-black border border-dark-800 hover:border-neon-red/50 px-3 py-1 rounded transition-all"
+                                >
+                                    LOGOUT
+                                </button>
+                            </div>
                         </div>
                         <p className="text-dark-400 mt-2">
                             Optimization Profile: <span className="text-white font-bold">{resumeData?.experienceLevel || 'Unknown'} Engineer</span>
@@ -158,6 +163,23 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                         >
                             <Target size={18} /> Target Role
                         </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-dark-950 p-1 rounded-xl border border-dark-800 ml-4">
+                        {['easy', 'normal', 'hard'].map((level) => (
+                            <button
+                                key={level}
+                                onClick={() => setDifficulty(level as any)}
+                                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${difficulty === level ?
+                                    (level === 'easy' ? 'bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' :
+                                        level === 'hard' ? 'bg-red-500/20 text-red-500 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' :
+                                            'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]')
+                                    : 'text-gray-600 hover:text-gray-300'
+                                    }`}
+                            >
+                                {level}
+                            </button>
+                        ))}
                     </div>
                 </header>
 
@@ -189,7 +211,7 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                                         ))}
                                     </div>
                                     <button
-                                        onClick={() => onStartSimulation({ role: job.title, company: job.company, level: resumeData?.experienceLevel })}
+                                        onClick={() => onStartSimulation({ role: job.title, company: job.company, level: resumeData?.experienceLevel, difficulty })}
                                         className="w-full py-3 bg-neon-blue hover:bg-blue-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                                     >
                                         Apply & Enter Simulation <ArrowRight size={16} />
@@ -404,8 +426,8 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                                                     {/* Master Index */}
                                                     <div className="flex items-center gap-4 p-3 rounded-xl bg-gradient-to-r from-neon-red/10 to-purple-500/10 border border-neon-red/30">
                                                         <div className={`w-14 h-14 rounded-full flex-shrink-0 flex flex-col items-center justify-center font-black border-2 ${skillGapResult.employabilityIndex >= 70 ? 'border-green-500 text-green-400' :
-                                                                skillGapResult.employabilityIndex >= 45 ? 'border-yellow-500 text-yellow-400' :
-                                                                    'border-red-500 text-red-400'
+                                                            skillGapResult.employabilityIndex >= 45 ? 'border-yellow-500 text-yellow-400' :
+                                                                'border-red-500 text-red-400'
                                                             }`}>
                                                             <span className="text-lg">{skillGapResult.employabilityIndex}</span>
                                                         </div>
@@ -481,7 +503,7 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                                             )}
 
                                             <button
-                                                onClick={() => onStartSimulation({ role: targetRole, company: targetCompany, level: selectedLevel, focus: focusModule, missingSkills: skillGapResult?.missingSkills || targetPathResult?.missingSkills })}
+                                                onClick={() => onStartSimulation({ role: targetRole, company: targetCompany, level: selectedLevel, focus: focusModule, missingSkills: skillGapResult?.missingSkills || targetPathResult?.missingSkills, difficulty })}
                                                 className="w-full py-3 border border-white/20 hover:bg-white/5 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
                                             >
                                                 Prove It in Simulation <ArrowRight size={14} />

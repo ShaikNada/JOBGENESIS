@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Loader2, Target, FileText, Eye, AlertTriangle, Maximize2, X, Grid, GitMerge } from 'lucide-react';
+import { Loader2, Target, FileText, AlertTriangle, Maximize2, X, Grid, GitMerge } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DataVisualizer } from './DataVisualizer';
 
 interface Props {
   loading: boolean;
-  problem: { 
-    title: string; 
-    difficulty: string; 
-    description: string; 
-    visualType?: string; 
-    visualData?: any; 
+  problem: {
+    title: string;
+    difficulty: string;
+    description: string;
+    visualType?: string;
+    visualData?: any;
   } | null;
 }
 
@@ -35,7 +35,7 @@ export const ProblemPanel = ({ loading, problem }: Props) => {
             {activeTab === 'visual' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_10px_#3b82f6]" />}
           </button>
         </div>
-        
+
         <div className="flex-1 relative overflow-hidden bg-dark-950">
           <style>{`
             .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -84,17 +84,17 @@ export const ProblemPanel = ({ loading, problem }: Props) => {
                   <div onClick={() => hasVisualData && setShowFullBlueprint(true)} className={clsx("relative flex-1 bg-[#050505] rounded-lg border border-dark-700 overflow-hidden shadow-inner flex flex-col transition-colors", hasVisualData ? "cursor-pointer group hover:border-blue-500/50" : "cursor-default opacity-50")}>
                     <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                     {hasVisualData && (
-                        <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px] z-20">
+                      <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px] z-20">
                         <div className="bg-black/80 px-4 py-2 rounded border border-blue-500 text-blue-400 font-bold uppercase tracking-widest flex items-center gap-2"><Maximize2 size={16} /> Expand Diagram</div>
-                        </div>
+                      </div>
                     )}
                     <div className="absolute top-2 left-2 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded text-[10px] text-blue-400 font-mono uppercase tracking-widest z-10">Logic Flow</div>
                     <div className="flex-1 overflow-auto p-8 custom-scrollbar">
-                       {hasVisualData ? (
-                           <DataVisualizer type="Flowchart" data={problem.visualData} />
-                       ) : (
-                           <div className="h-full flex items-center justify-center text-gray-600 text-xs font-mono">NO LOGIC DATA</div>
-                       )}
+                      {hasVisualData ? (
+                        <DataVisualizer type="Flowchart" data={problem.visualData} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-gray-600 text-xs font-mono">NO LOGIC DATA</div>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4 p-3 bg-dark-900 border border-dark-700 rounded-lg flex gap-3 items-start">
@@ -105,11 +105,11 @@ export const ProblemPanel = ({ loading, problem }: Props) => {
               )}
             </div>
           ) : (
-             <div className="h-full flex items-center justify-center p-4 text-red-500 font-mono text-xs">NO_DATA_RECEIVED</div>
+            <div className="h-full flex items-center justify-center p-4 text-red-500 font-mono text-xs">NO_DATA_RECEIVED</div>
           )}
         </div>
       </div>
-      
+
       <AnimatePresence>
         {showFullBlueprint && hasVisualData && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-8" onClick={() => setShowFullBlueprint(false)}>
@@ -119,9 +119,9 @@ export const ProblemPanel = ({ loading, problem }: Props) => {
                 <button onClick={() => setShowFullBlueprint(false)} className="text-gray-400 hover:text-white transition-colors"><X size={20} /></button>
               </div>
               <div className="flex-1 overflow-auto p-12 relative bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-100 custom-scrollbar flex items-center justify-center">
-                 <div className="w-full max-w-lg origin-center scale-110">
-                    <DataVisualizer type="Flowchart" data={problem?.visualData} />
-                 </div>
+                <div className="w-full max-w-lg origin-center scale-110">
+                  <DataVisualizer type="Flowchart" data={problem?.visualData} />
+                </div>
               </div>
             </motion.div>
           </motion.div>

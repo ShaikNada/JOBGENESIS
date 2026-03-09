@@ -5,12 +5,13 @@ export async function generateCodingChallenge(
   role: string,
   company: string,
   stage: number,
-  experienceLevel: string
+  experienceLevel: string,
+  difficulty?: 'easy' | 'normal' | 'hard'
 ) {
   const res = await fetch(`${API_BASE}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role, company, stage, experienceLevel })
+    body: JSON.stringify({ role, company, stage, experienceLevel, difficulty })
   });
 
   if (!res.ok) throw new Error("Generate failed");

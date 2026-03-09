@@ -1,0 +1,87 @@
+# ☁️ JobGenesis Vanguard: AWS Deployment Guide
+
+Your local Docker network is currently blocking the base image downloads. However, deploying the **entire JobGenesis ecosystem** (Frontend, Node.js Backend, Python ML Engine, Redis, and MongoDB) to an AWS production server is extremely straightforward. 
+
+Since you don't have the AWS CLI installed locally, we will use the **AWS Management Console (Browser)** and an automated **EC2 User Data Script**.
+
+## 🚀 Step 1: Prepare Your Repository
+To pull the code onto the AWS server automatically, your code needs to be in a Git repository.
+1. Commit all your latest changes.
+2. Push your code to a repository on **GitHub, GitLab, or Bitbucket**.
+3. If the repository is private, you will need to generate a **Personal Access Token (PAT)** so the EC2 server can clone it.
+
+## 🚀 Step 2: Launch the Vanguard EC2 Server
+1. Log in to your [AWS Management Console](https://console.aws.amazon.com/).
+2. Search for and navigate to **EC2**.
+3. Click **Launch Instance**.
+4. **Name**: `JobGenesis-Vanguard-Core`
+5. **AMI (OS)**: Select **Amazon Linux 2023** (Free tier eligible, but for this stack, a larger instance is recommended).
+6. **Instance Type**: Select **t3.medium** or **t3.large** (The ML Engine and IDE building process requires at least 4GB of RAM).
+7. **Key Pair**: Create a new Key Pair (RSA / .pem) and download it so you can SSH into the server later if needed.
+
+## 🚀 Step 3: Network Security (Firewall Rules)
+In the **Network settings**, create a new Security Group and ensure the following ports are open to the world (0.0.0.0/0):
+*   **SSH (22)**: For server access.
+*   **HTTP (80)**: For the Vite Frontend.
+*   **HTTPS (443)**: If you plan to add SSL later.
+*   **Custom TCP (4000)**: For the Node.js Backend API bypass (if needed).
+*   **Custom TCP (8000)**: For ML-Engine direct health checks.
+
+## 🚀 Step 4: Inject the Automation Script (The Magic)
+Scroll all the way down to **Advanced details**, expand it, and look for the **User data** text box. 
+
+This script will run automatically *once* when the server boots. It installs Docker, clones your repo, injects your exact environment variables, and launches the [docker-compose.yml](file:///d:/project/jobGenisis%281%29/coding-gauntlet/docker-compose.yml) stack.
+
+**Copy and paste the following script into the User Data box:**
+
+```bash
+#!/bin/bash
+# JobGenesis - EC2 Production Provisioning Script (Amazon Linux 2023)
+
+# 1. System Updates & Dependencies
+yum update -y
+yum install -y git jq curl
+
+# 2. Install Docker
+yum install -y docker
+systemctl enable docker
+systemctl start docker
+usermod -aG docker ec2-user
+
+# 3. Install Docker Compose
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+# 4. Clone the Repository
+cd /home/ec2-user
+# 🔴 IMPORTANT: Replace the URL below with your actual repository URL.
+# If private: https://<GITHUB_TOKEN>@github.com/yourusername/jobgenesis.git
+git clone https://github.com/yourusername/jobgenesis.git
+cd jobgenesis
+
+# 5. Environment Variables Injection
+cat <<EOF > .env
+GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>
+GROQ_API_KEY=<YOUR_GROQ_API_KEY>
+MONGO_URI=<YOUR_MONGO_URI>
+PORT=4000
+JWT_SECRET=<YOUR_JWT_SECRET>
+EOF
+cp .env backend/.env
+cp .env ml-engine/.env
+
+# 6. Launch the Vanguard Stack
+chown -R ec2-user:ec2-user /home/ec2-user/jobgenesis
+su - ec2-user -c "cd /home/ec2-user/jobgenesis && docker-compose up --build -d"
+```
+
+*Note: Be sure to change `https://github.com/yourusername/jobgenesis.git` to your actual repo link before launching!*
+
+## 🚀 Step 5: Launch & Verify
+1. Click **Launch instance**.
+2. Wait about 3-5 minutes for the instance to initialize and run the script.
+3. Once running, copy the **Public IPv4 address** of your EC2 instance.
+4. Paste the IP address into your browser: `http://<YOUR_EC2_IP>`
+
+JobGenesis OS will be live on the world wide web. 🛸

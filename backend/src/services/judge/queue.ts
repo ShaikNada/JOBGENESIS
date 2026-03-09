@@ -3,13 +3,39 @@ import { Problem } from "../../models/Problem.model";
 import IORedis from 'ioredis';
 import { runJavaScript } from './jsRunner';
 
-const REDIS_URI = process.env.REDIS_URI || 'redis://localhost:6379';
-const connection = new IORedis(REDIS_URI, { maxRetriesPerRequest: null });
+const REDIS_URI = process.env.REDIS_URI;
+let connection: IORedis | null = null;
+let codeQueue: Queue | null = null;
 
-export const codeQueue = new Queue('code-execution', { connection: connection as any });
+if (REDIS_URI && REDIS_URI !== 'false') {
+    try {
+        connection = new IORedis(REDIS_URI, {
+            maxRetriesPerRequest: null,
+            connectTimeout: 5000,
+            retryStrategy: (times) => {
+                if (times > 3) return null; // try 3 times then give up
+                return 2000;
+            }
+        });
+
+        connection.on('error', (err) => {
+            console.warn('⚠️ BullMQ Redis Connection Warning:', err.message);
+        });
+
+        codeQueue = new Queue('code-execution', { connection: connection as any });
+    } catch (err) {
+        console.error('🔴 Failed to initialize BullMQ:', err);
+    }
+} else {
+    console.warn('⚠️ WARNING: REDIS_URI not found for BullMQ. Queue system will be disabled.');
+}
+
+export { codeQueue };
 
 // Define the worker separately if needed for scalability
 export const setupWorker = () => {
+    if (!connection) return null;
+
     const worker = new Worker('code-execution', async (job: Job) => {
         const { code, testCases, functionName } = job.data;
         console.log(`[Worker] Executing job ${job.id} for ${functionName}`);
@@ -18,14 +44,6 @@ export const setupWorker = () => {
         const result = await runJavaScript(code, testCases, functionName);
         return result;
     }, { connection: connection as any });
-
-    worker.on('completed', (job) => {
-        console.log(`[Worker] Job ${job.id} completed successfully`);
-    });
-
-    worker.on('failed', (job, err) => {
-        console.error(`[Worker] Job ${job?.id} failed:`, err);
-    });
 
     return worker;
 };

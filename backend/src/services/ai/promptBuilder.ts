@@ -90,12 +90,20 @@ Return ONLY valid JSON:
 export function buildDomainSpecificPrompt({
   role,
   experienceLevel,
-  company
+  company,
+  difficulty = 'normal'
 }: {
   role: string;
   experienceLevel: string;
   company: string;
+  difficulty?: 'easy' | 'normal' | 'hard';
 }) {
+  const difficultyConstraints = {
+    'easy': 'Make the problem extremely straightforward, focusing on core syntax. Avoid edge cases and provide generous starter code.',
+    'normal': 'Make the problem challenging but fair for a standard interview.',
+    'hard': 'Make the problem exceptionally difficult. Include obscure edge cases, strict performance bounds, and complex architectural requirements suitable for a FAANG principal interview.'
+  }[difficulty];
+
   return `
 You are a senior technical interviewer at ${company}.
 Your candidate is applying for a ${experienceLevel} ${role} position.
@@ -104,6 +112,9 @@ Task:
 Generate a single, unique, practical coding problem relevant to this role.
 Do NOT generate a generic LeetCode DSA problem unless it's critical for the role.
 Focus on domain skills (e.g., React for Frontend, API Design for Backend).
+
+Difficulty Scaling:
+You MUST adhere to this strict difficulty constraint: ${difficultyConstraints}
 
 Requirements:
 1. Title: Professional and clear.
@@ -145,10 +156,16 @@ Return JSON:
 `;
 }
 
-export function buildHintPrompt(code: string, problemDescription: string, language: string) {
+export function buildHintPrompt(code: string, problemDescription: string, language: string, difficulty: 'easy' | 'normal' | 'hard' = 'normal') {
+  const difficultyStyle = {
+    'easy': 'Be very generous and direct. Almost give them the exact code they need to write.',
+    'normal': 'Give a subtle hint that nudges them in the right direction WITHOUT revealing the solution or writing code.',
+    'hard': 'Be extremely cryptic. Only give a high-level architectural or mathematical hint. Do NOT hold their hand.'
+  }[difficulty];
+
   return `
 You are a helpful coding coach. The user is stuck on this problem.
-Give a subtle hint that nudges them in the right direction WITHOUT revealing the solution or writing code.
+${difficultyStyle}
 
 Problem:
 ${problemDescription}
@@ -167,14 +184,22 @@ export function buildTechnicalExamPrompt({
   role,
   experienceLevel,
   company,
-  topic
+  topic,
+  difficulty = 'normal'
 }: {
   role: string;
   experienceLevel: string;
   company: string;
   topic?: string;
+  difficulty?: 'easy' | 'normal' | 'hard';
 }) {
   const topicFocus = topic ? `The focus of this exam is: ${topic}.` : "";
+  const difficultyRules = {
+    'easy': 'Questions should test very basic fundamental knowledge. The incorrect options should be obviously wrong. Include helpful context in the question.',
+    'normal': 'Questions should test deep conceptual understanding and practical knowledge.',
+    'hard': 'Questions should be extremely challenging, focusing on undocumented behavior, complex edge cases, and highly specialized domain knowledge. The incorrect options should be very tricky and plausible.'
+  }[difficulty];
+
   return `
 You are a lead technical interviewer at ${company}.
 Your candidate is applying for a ${experienceLevel} ${role} position.
@@ -182,7 +207,7 @@ ${topicFocus}
 
 Task:
 Generate 15 Multiple Choice Questions (MCQs) for a technical assessment for this role.
-The questions should test deep conceptual understanding, practical knowledge, and domain-specific skills.
+${difficultyRules}
 
 Format:
 Return a JSON array of objects, where each object has:
