@@ -172,7 +172,7 @@ export const TechnicalExam = ({ role, company, level, focus, difficulty = 'norma
                     <div>
                         <div className="text-[10px] uppercase text-dark-500 font-bold mb-1 tracking-[0.2em]">Current Sector</div>
                         <div className="text-xl font-black text-white uppercase">{role} Assessment</div>
-                        <div className="text-[10px] text-neon-blue font-bold tracking-widest mt-1 opacity-70">SECTOR: {company.toUpperCase()} // LEVEL: {level.toUpperCase()}</div>
+                        <div className="text-[10px] text-neon-blue font-bold tracking-widest mt-1 opacity-70">SECTOR: {company.toUpperCase()} // LEVEL: {(level || 'UNKNOWN').toUpperCase()}</div>
                     </div>
                     <div className="text-right">
                         <div className="flex items-center gap-2 text-neon-red font-black text-2xl mb-1">

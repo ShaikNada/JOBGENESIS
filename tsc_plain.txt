@@ -1,0 +1,4 @@
+src/App.tsx(158,11): error TS2322: Type '{ userName: string; resumeData: any; onStartSimulation: (config: any) => void; onViewProfile: () => void; onUploadResume: () => void; onLogout: () => void; }' is not assignable to type 'IntrinsicAttributes & JobDashboardProps'.
+  Property 'onUploadResume' does not exist on type 'IntrinsicAttributes & JobDashboardProps'.
+src/components/LandingPage.tsx(257,54): error TS2353: Object literal may only specify known properties, and 'dropShadow' does not exist in type 'MotionStyle'.
+src/components/TechnicalExam.tsx(175,154): error TS18048: 'level' is possibly 'undefined'.

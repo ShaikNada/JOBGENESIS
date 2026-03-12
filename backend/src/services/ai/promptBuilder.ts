@@ -208,6 +208,7 @@ ${topicFocus}
 Task:
 Generate 15 Multiple Choice Questions (MCQs) for a technical assessment for this role.
 ${difficultyRules}
+CRITICAL: Ensure absolute technical accuracy. Never swap or confuse foundational concepts (e.g. React State is internal/mutable, Props are external/read-only).
 
 Format:
 Return a JSON array of objects, where each object has:

@@ -43,8 +43,6 @@ authRouter.post("/google", googleAuth);
 authRouter.get("/verify-email/:token", verifyEmail);
 authRouter.get("/me", protect, getMe);
 
-import { protect } from "./middleware/auth.middleware";
-
 // Job Routes
 const jobRouter = express.Router();
 jobRouter.post("/match", matchJobs);

@@ -254,7 +254,7 @@ export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
                                             initial={{ strokeDashoffset: 326 }}
                                             whileInView={{ strokeDashoffset: 326 * 0.15 }}
                                             transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
-                                            style={{ dropShadow: "0 0 10px rgba(0,240,255,0.8)" }}
+                                            style={{ filter: "drop-shadow(0 0 10px rgba(0,240,255,0.8))" }}
                                         />
                                     </svg>
                                     <motion.div

@@ -9,10 +9,11 @@ interface JobDashboardProps {
     resumeData: any;
     onStartSimulation: (config: any) => void;
     onViewProfile: () => void;
+    onUploadResume?: () => void;
     onLogout: () => void;
 }
 
-export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewProfile, onLogout }: JobDashboardProps) => {
+export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewProfile, onUploadResume, onLogout }: JobDashboardProps) => {
     const [activeTab, setActiveTab] = useState<'auto' | 'target'>('auto');
     const [targetCompany, setTargetCompany] = useState('');
     const [targetRole, setTargetRole] = useState('');
@@ -148,6 +149,7 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
                         <p className="text-dark-400 mt-2">
                             Optimization Profile: <span className="text-white font-bold">{resumeData?.experienceLevel || 'Unknown'} Engineer</span>
                             <button onClick={onViewProfile} className="ml-4 text-neon-blue text-xs border-b border-neon-blue/0 hover:border-neon-blue transition-all uppercase font-black">View Archives</button>
+                            <button onClick={onUploadResume} className="ml-4 text-neon-blue text-xs border-b border-neon-blue/0 hover:border-neon-blue transition-all uppercase font-black">Upload New Resume</button>
                         </p>
                     </div>
                     <div className="flex gap-2">
