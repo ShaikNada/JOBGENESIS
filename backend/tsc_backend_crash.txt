@@ -1,0 +1,2 @@
+src/server.ts(79,9): error TS2448: Block-scoped variable 'healer' used before its declaration.
+src/server.ts(79,9): error TS2454: Variable 'healer' is used before being assigned.

@@ -43,6 +43,14 @@ authRouter.post("/google", googleAuth);
 authRouter.get("/verify-email/:token", verifyEmail);
 authRouter.get("/me", protect, getMe);
 
+// INTENTIONAL CRASH ROUTE FOR SELF-HEALER TESTING
+authRouter.get("/crash", (req, res) => {
+    // This will throw: Cannot read properties of undefined (reading 'length')
+    const bug: any = undefined;
+    const size = bug?.length ?? 0; 
+    res.json({ size });
+});
+
 // Job Routes
 const jobRouter = express.Router();
 jobRouter.post("/match", matchJobs);
@@ -68,6 +76,12 @@ app.use("/api/skill-gap", aiEndpointLimiter, skillGapRouter);
 app.use("/api/interview", aiEndpointLimiter, interviewRouter);
 app.use("/api/assessment", aiEndpointLimiter, assessmentRouter);
 
+import { SelfHealer } from "./services/ai/selfHealer";
+
+// Initialize Auto-Healing Bot
+const healer = new SelfHealer();
+
+app.use(healer.expressErrorHandler);
 
 // CRITICAL: Fail fast if config is missing
 function checkConfig() {
