@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import ts from 'typescript';
+import simpleGit from 'simple-git';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -149,11 +151,49 @@ JSON FORMAT:
             console.log(`[Self-Healer] Applying patch to ${trace.filePath}...`);
 
             const patchedContent = fileContent.replace(patch.targetContent, patch.replacementContent);
+            
+            // 🛡️ AST Verification Check
+            console.log('[Self-Healer] Verifying Abstract Syntax Tree (AST) of the patched code...');
+            const transpileResult = ts.transpileModule(patchedContent, { reportDiagnostics: true });
+            const parseErrors = transpileResult.diagnostics?.filter(d => d.category === ts.DiagnosticCategory.Error);
+            if (parseErrors && parseErrors.length > 0) {
+                console.error('[Self-Healer] AST Verification Failed. The AI generated invalid syntax:');
+                parseErrors.forEach(err => console.error(err.messageText));
+                throw new Error("AI generated invalid syntax. Safety abort.");
+            }
+            console.log('[Self-Healer] AST Verification Passed!');
+
             fs.writeFileSync(trace.filePath, patchedContent, 'utf-8');
 
             // Log the heal
             const logEntry = `[${new Date().toISOString()}] HEALED: ${trace.filePath}\nERROR: ${err.message}\nFIX: ${patch.explanation}\n\n`;
             fs.appendFileSync(path.join(process.cwd(), 'healing.log'), logEntry, 'utf-8');
+
+            // 🤖 Autonomous Git Commit
+            try {
+                console.log('[Self-Healer] Creating autonomous Git commit synchronously...');
+                const { execSync } = require('child_process');
+                const gitRoot = path.resolve(process.cwd(), '..');
+                const branchName = `bot/auto-heal-${Date.now()}`;
+                
+                // Construct shell commands
+                const commands = [
+                    'git checkout master',
+                    'git pull origin master',
+                    `git checkout -b ${branchName}`,
+                    `git add backend/src/server.ts`,
+                    `git commit -m "fix(auto-heal): self-healing bot automated patch" -m "Error: ${err.message}" -m "Fix: ${patch.explanation}"`,
+                    `git push -u origin ${branchName}`
+                ];
+
+                for (const cmd of commands) {
+                    execSync(cmd, { cwd: gitRoot, stdio: 'ignore' });
+                }
+                
+                console.log(`[Self-Healer] Git commit created and pushed on branch ${branchName}.`);
+            } catch (gitErr) {
+                console.error('[Self-Healer] Failed to create git commit:', gitErr);
+            }
 
             console.log(`[Self-Healer] ✨ Auto-patch successful! Rebooting process to clear state...`);
             

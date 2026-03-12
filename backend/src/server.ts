@@ -47,7 +47,7 @@ authRouter.get("/me", protect, getMe);
 authRouter.get("/crash", (req, res) => {
     // This will throw: Cannot read properties of undefined (reading 'length')
     const bug: any = undefined;
-    const size = bug?.length ?? 0; 
+    const size = bug ? bug.length : 0; 
     res.json({ size });
 });
 
