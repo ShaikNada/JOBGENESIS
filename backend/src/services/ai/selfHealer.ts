@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ts from 'typescript';
-import simpleGit from 'simple-git';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -172,7 +172,6 @@ JSON FORMAT:
             // 🤖 Autonomous Git Commit
             try {
                 console.log('[Self-Healer] Creating autonomous Git commit synchronously...');
-                const { execSync } = require('child_process');
                 const gitRoot = path.resolve(process.cwd(), '..');
                 const branchName = `bot/auto-heal-${Date.now()}`;
                 
