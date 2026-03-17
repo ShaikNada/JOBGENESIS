@@ -1,13 +1,31 @@
 import { Request, Response } from "express";
 import { User } from "../models/User.model";
 import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
+import admin from "firebase-admin";
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+// Initialize Firebase Admin SDK once (uses GOOGLE_APPLICATION_CREDENTIALS env variable OR
+// FIREBASE_SERVICE_ACCOUNT_JSON env variable as JSON string for serverless platforms like Render)
+if (!admin.apps.length) {
+    try {
+        const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+        if (serviceAccountJson) {
+            const serviceAccount = JSON.parse(serviceAccountJson);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+            console.log("✅ Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_JSON");
+        } else {
+            // Falls back to Application Default Credentials (works on GCP/Firebase hosting)
+            admin.initializeApp();
+            console.log("✅ Firebase Admin initialized via Application Default Credentials");
+        }
+    } catch (e) {
+        console.warn("⚠️ Firebase Admin init failed. Google auth will not work:", e);
+    }
+}
 
 const generateToken = (id: string) => {
     if (!JWT_SECRET) throw new Error("JWT_SECRET is not defined");
@@ -52,7 +70,6 @@ export const registerUser = async (req: Request, res: Response) => {
                 });
             }
 
-            // MOCK EMAIL LOG (STILL KEEP FOR PROD-LIKE TESTING)
             console.log("-----------------------------------------");
             console.log(`📧 VERIFICATION EMAIL SENT TO: ${email}`);
             console.log(`🔗 LINK: http://localhost:4000/api/auth/verify-email/${verificationToken}`);
@@ -121,42 +138,45 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 };
 
-// @desc    Google OAuth
+// @desc    Firebase Google Auth (verifies Firebase ID token from frontend)
 // @route   POST /api/auth/google
 export const googleAuth = async (req: Request, res: Response) => {
     try {
-        const { token } = req.body;
+        const { token, role } = req.body;
 
-        if (!GOOGLE_CLIENT_ID) {
-            return res.status(500).json({ message: "Google Auth not configured" });
+        if (!token) {
+            return res.status(400).json({ message: "No Firebase ID token provided" });
         }
 
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: GOOGLE_CLIENT_ID,
-        });
+        // Verify the Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(token);
 
-        const payload = ticket.getPayload();
+        const { uid, email, name, picture } = decodedToken;
 
-        if (!payload || !payload.email) {
-            return res.status(400).json({ message: "Invalid Google Token" });
+        if (!email) {
+            return res.status(400).json({ message: "Could not extract email from Firebase token" });
         }
 
-        let user = await User.findOne({ email: payload.email });
+        let user = await User.findOne({ email });
 
         if (!user) {
-            // Create new user via Google
+            // Create new user via Google / Firebase
             user = await User.create({
-                name: payload.name || "Google User",
-                email: payload.email,
-                googleId: payload.sub,
-                avatar: payload.picture,
+                name: name || "Google User",
+                email,
+                googleId: uid,
+                avatar: picture,
                 authProvider: "google",
+                isVerified: true, // Firebase already verified the email
+                role: role === "recruiter" ? "recruiter" : "candidate",
+                password: crypto.randomBytes(32).toString("hex"), // random unusable password
             });
+            console.log(`✅ New Firebase Google user created: ${email}`);
         } else if (!user.googleId) {
-            // Link existing account
-            user.googleId = payload.sub;
-            user.authProvider = "google"; // update or keep 'local' dual auth?
+            // Link existing local account to Google
+            user.googleId = uid;
+            user.authProvider = "google";
+            user.isVerified = true;
             await user.save();
         }
 
@@ -170,11 +190,18 @@ export const googleAuth = async (req: Request, res: Response) => {
             token: generateToken(user.id),
         });
 
-    } catch (error) {
-        console.error("Google Auth Error:", error);
-        res.status(401).json({ message: "Google authentication failed", error });
+    } catch (error: any) {
+        console.error("Firebase Auth Error:", error);
+        if (error.code === "auth/id-token-expired") {
+            return res.status(401).json({ message: "Firebase token expired. Please sign in again." });
+        }
+        if (error.code === "auth/argument-error" || error.code === "auth/invalid-id-token") {
+            return res.status(401).json({ message: "Invalid Firebase token." });
+        }
+        res.status(401).json({ message: "Google authentication failed", error: error.message });
     }
 };
+
 // @desc    Get current user profile
 // @route   GET /api/auth/me
 export const getMe = async (req: Request, res: Response) => {
