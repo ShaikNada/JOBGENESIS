@@ -8,6 +8,7 @@ export const useProctorAI = (videoRef: React.RefObject<any>, onViolation: (reaso
   
   const modelRef = useRef<cocoSsd.ObjectDetection | null>(null);
   const detectionInterval = useRef<any>(null);
+  const consecutiveEmptyFrames = useRef(0);
 
   useEffect(() => {
     const loadModel = async () => {
@@ -60,6 +61,17 @@ export const useProctorAI = (videoRef: React.RefObject<any>, onViolation: (reaso
         if (personCount > 1) {
           console.warn("🚨 MULTIPLE PEOPLE DETECTED!");
           onViolation("MULTIPLE BIOSIGNATURES DETECTED");
+        }
+
+        if (personCount === 0) {
+          consecutiveEmptyFrames.current++;
+          if (consecutiveEmptyFrames.current >= 5) { // 5 seconds of no face
+            console.warn("🚨 CANDIDATE MISSING!");
+            onViolation("CANDIDATE NOT IN FRAME");
+          }
+        } else {
+          // Reset
+          consecutiveEmptyFrames.current = 0;
         }
       }
     }, 1000); 

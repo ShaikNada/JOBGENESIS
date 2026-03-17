@@ -13,7 +13,12 @@ export async function deterministicJudge(payload: any) {
     return fail("Only JavaScript supported for now");
   }
 
-  const problem = await Problem.findById(problemId);
+  const problem = await Problem.findOne({
+    $or: [
+      { _id: problemId.match(/^[0-9a-fA-F]{24}$/) ? problemId : null },
+      { id: problemId }
+    ]
+  });
   if (!problem) return fail("Problem not found");
 
   // Fallback to direct execution if Redis/Queue is unavailable

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { generateCodingChallenge, evaluateCode } from '../lib/gemini';
+import { getSocket } from '../socket';
 import { ProblemPanel } from './ProblemPanel';
 import { CodeEditor, type EvaluationResult } from './CodeEditor';
 import { AssistantPanel } from './AssistantPanel';
@@ -15,17 +16,38 @@ interface Props {
   company: string;
   experienceLevel: string;
   difficulty?: 'easy' | 'normal' | 'hard';
+  bountyId?: string;
+  roomId?: string; // For Co-Op mode
+  candidateId?: string;
   onComplete: (score: number, finalCode: string) => void;
 }
 
-export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal', onComplete }: Props) => {
-  const { warnings: _warnings } = useAntiCheat(); // Prefixed with _ to indicate unused but kept for hook activation
+export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal', bountyId, roomId, candidateId, onComplete }: Props) => {
+  const [score, setScore] = useState(100);
+
+  const handleProctorStrike = (reason: string) => { 
+      setScore(prev => Math.max(0, prev - 10)); 
+      toast.error(`⚠️ ${reason} (-10 PTS)`); 
+      
+      if (candidateId) {
+        getSocket().emit('candidate_telemetry', { id: candidateId, risk: 'High' });
+        getSocket().emit('candidate_log', { 
+          log: `> [ENGINE] Proctor Strike on Candidate ${candidateId}: ${reason}` 
+        });
+      }
+  };
+
+  useEffect(() => {
+    if (candidateId) {
+      getSocket().emit('candidate_telemetry', { id: candidateId, score });
+    }
+  }, [score, candidateId]);
+
+  const { warnings: _warnings, disqualified } = useAntiCheat(handleProctorStrike); 
   const { timeLeft, startTimer, stopTimer, formatTime } = useTimer(45);
   const mounted = useRef(false);
-
-  const [score, setScore] = useState(100);
   const [stage, setStage] = useState(1);
-  const TOTAL_STAGES = 3;
+  const TOTAL_STAGES = bountyId ? 1 : 3; // Bounties are 1-shot fixes
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFailureModal, setShowFailureModal] = useState(false);
@@ -42,6 +64,18 @@ export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal
 
   const [isRunning, setIsRunning] = useState(false);
 
+  // Monitor Anti-Cheat Disqualifications
+  useEffect(() => {
+    if (disqualified) {
+      stopTimer();
+      toast.error("MISSION TERMINATED: Integrity Breach Limit Reached", { id: "dq", duration: 8000 });
+      // Heavily penalize the final score
+      setTimeout(() => {
+        onComplete(Math.max(0, score - 50), codeSnippets[language] || "// DISQUALIFIED");
+      }, 3000);
+    }
+  }, [disqualified]);
+
   useEffect(() => {
     const init = async () => {
       if (mounted.current) return;
@@ -52,7 +86,17 @@ export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal
 
       // FIX: Added '_v2' to force refresh of cached data so new backend logic runs
       try {
-        const data = await generateCodingChallenge(role, company, stage, experienceLevel, difficulty);
+        let data;
+        if (bountyId) {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/problems/${bountyId}`);
+            if (res.ok) {
+                data = await res.json();
+            } else {
+                toast.error("Bounty not found or corrupted.");
+            }
+        } else {
+            data = await generateCodingChallenge(role, company, stage, experienceLevel, difficulty);
+        }
 
         if (data) {
           setProblem(data);
@@ -92,7 +136,6 @@ export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal
   const handleLanguageChange = (newLang: string) => setLanguage(newLang);
   const handleCodeChange = (newCode: string) => setCodeSnippets(prev => ({ ...prev, [language]: newCode }));
   // handleHintUsed logic integrated into AssistantPanel or tracked via state if needed
-  const handleProctorStrike = (reason: string) => { setScore(prev => Math.max(0, prev - 10)); toast.error(`⚠️ ${reason} (-10 PTS)`); };
 
   const handleRunCode = async (mode: 'run' | 'submit' | 'custom', customInput?: string) => {
     if (!problem) return null;
@@ -188,7 +231,7 @@ export const IdeLayout = ({ role, company, experienceLevel, difficulty = 'normal
             setLanguage={handleLanguageChange}
             onRun={handleRunCode}
             isRunning={isRunning}
-            missionId={problem?._id || problem?.id}
+            missionId={roomId || problem?._id || problem?.id}
           />
         </div>
 

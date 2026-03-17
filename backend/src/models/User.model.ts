@@ -1,6 +1,24 @@
 import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcryptjs";
 
+export interface ISkillTree {
+    frontend: number;
+    backend: number;
+    systemDesign: number;
+    security: number;
+    algorithms: number;
+    bountiesSolved: number;
+    totalXP: number;
+}
+
+export interface IBadge {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    earnedAt: Date;
+}
+
 export interface IUser extends Document {
     email: string;
     password?: string;
@@ -13,6 +31,8 @@ export interface IUser extends Document {
     resumeData?: any;
     isVerified: boolean;
     verificationToken?: string;
+    skillTree: ISkillTree;
+    badges: IBadge[];
     createdAt: Date;
     comparePassword(candidate: string): Promise<boolean>;
 }
@@ -30,6 +50,22 @@ const UserSchema = new Schema<IUser>(
         resumeData: { type: Schema.Types.Mixed }, // Store parsed resume JSON
         isVerified: { type: Boolean, default: false },
         verificationToken: { type: String },
+        skillTree: {
+            frontend:     { type: Number, default: 0 },
+            backend:      { type: Number, default: 0 },
+            systemDesign: { type: Number, default: 0 },
+            security:     { type: Number, default: 0 },
+            algorithms:   { type: Number, default: 0 },
+            bountiesSolved: { type: Number, default: 0 },
+            totalXP:      { type: Number, default: 0 }
+        },
+        badges: [{
+            id:          { type: String },
+            name:        { type: String },
+            description: { type: String },
+            icon:        { type: String },
+            earnedAt:    { type: Date, default: Date.now }
+        }],
     },
     { timestamps: true }
 );

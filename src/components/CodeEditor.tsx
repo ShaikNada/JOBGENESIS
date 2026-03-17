@@ -68,14 +68,29 @@ export const CodeEditor = ({
   const [aiFeedback, setAiFeedback] = useState<{ type: 'complexity' | 'hint', content: any } | null>(null);
 
   const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const remoteCursorDecorations = useRef<any>(null);
+  
   // connection state kept for future use
   const lastSender = useRef<string | null>(null);
 
   // debounce helper
   const codeUpdateTimeout = useRef<any>(null);
 
-  const handleEditorDidMount: OnMount = (editor) => {
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    // Listen for local cursor movements and broadcast
+    if (missionId) {
+      editor.onDidChangeCursorPosition((e: any) => {
+        // e.reason 3 means explicit user action (click or keyboard)
+        if (e.reason === 3 || e.reason === 0) {
+          const socket = getSocket();
+          socket.emit('cursor_move', { missionId, cursor: e.position });
+        }
+      });
+    }
   };
 
   // sync setup when missionId changes
@@ -92,12 +107,32 @@ export const CodeEditor = ({
       setCode(incoming);
     };
 
-    socket.on('code_update', onCodeUpdate);
+    const onCursorMove = ({ cursor, sender }: { cursor: any; sender: string }) => {
+      if (sender === socket.id) return;
+      if (editorRef.current && monacoRef.current && cursor) {
+        if (!remoteCursorDecorations.current) {
+          remoteCursorDecorations.current = editorRef.current.createDecorationsCollection([]);
+        }
+        
+        // Use monaco Range to paint the cursor
+        const { Range } = monacoRef.current;
+        remoteCursorDecorations.current.set([{
+          range: new Range(cursor.lineNumber, cursor.column, cursor.lineNumber, cursor.column),
+          options: {
+            className: 'remote-cursor',
+            stickiness: 1, // TrackAfter
+            hoverMessage: { value: 'Remote Collaborator' }
+          }
+        }]);
+      }
+    };
 
-    // connection events could be handled here if needed
+    socket.on('code_update', onCodeUpdate);
+    socket.on('cursor_move', onCursorMove);
 
     return () => {
       socket.off('code_update', onCodeUpdate);
+      socket.off('cursor_move', onCursorMove);
     };
   }, [missionId, setCode]);
 

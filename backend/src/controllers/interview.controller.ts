@@ -4,7 +4,7 @@ import { retrieveCompanyContext } from '../services/rag/knowledgeBase';
 
 export const generateInitialQuestion = async (req: Request, res: Response) => {
     try {
-        const { code, problemTitle, problemDescription, targetRole, company } = req.body;
+        const { code, problemTitle, problemDescription, targetRole, company, isStressMode } = req.body;
 
         if (!code) {
             return res.status(400).json({ message: "Code payload is required for context." });
@@ -16,6 +16,15 @@ export const generateInitialQuestion = async (req: Request, res: Response) => {
         You are an expert Senior Engineering Manager conducting a technical interview for a ${targetRole || 'Software Engineer'} role at ${company || 'your tech company'}.
         
         ${ragContext}
+
+        ${isStressMode ? `
+        !!! STRESS PROTOCOL ACTIVE !!!
+        Your personality is: AGGRESSIVE, UNIMPRESSED, SKEPTICAL, and RUTHLESS.
+        You are interviewing for an elite, high-stakes position. 
+        You believe the candidate's code is likely brittle and full of edge-case bugs.
+        Hunt for performance regressions, memory leaks, and suboptimal logic.
+        Be critically cold. Do not offer encouragement. 
+        ` : 'Your personality is professional, rigorous but fair.'}
 
         The candidate just completed a coding challenge titled "${problemTitle || 'Algorithm Test'}".
         
@@ -43,7 +52,7 @@ export const generateInitialQuestion = async (req: Request, res: Response) => {
 
 export const evaluateResponse = async (req: Request, res: Response) => {
     try {
-        const { code, targetRole, question, transcript } = req.body;
+        const { code, targetRole, question, transcript, isStressMode } = req.body;
 
         if (!transcript) {
             return res.status(400).json({ message: "Audio transcript is required." });
@@ -58,6 +67,14 @@ export const evaluateResponse = async (req: Request, res: Response) => {
         This is the candidate's transcribed spoken response:
         "${transcript}"
         
+        ${isStressMode ? `
+        !!! STRESS PROTOCOL ACTIVE !!!
+        Evaluate with ZERO TOLERANCE. 
+        If they stutter, are unsure, or give a generic answer, penalize them heavily.
+        The feedback should be concise and cutting. 
+        If they performed well, admit it begrudgingly but find one more area they could improve.
+        ` : 'Evaluate fairly based on technical depth and communication clarity.'}
+
         Analyze their response. Did they correctly identify the complexity or architectural constraint? Were they confident and clear in their communication?
         
         Provide a JSON response strictly in this format:

@@ -3,11 +3,14 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ts from 'typescript';
+import { getIO } from '../../socketService';
+import { Problem } from '../../models/Problem.model';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 interface PatchResult {
-    targetContent: string;
+    startLine: number;
+    endLine: number;
     replacementContent: string;
     explanation: string;
 }
@@ -98,7 +101,17 @@ export class SelfHealer {
             // Extract a window of context (e.g., 20 lines before and 20 lines after)
             const startLine = Math.max(0, trace.line - 20);
             const endLine = Math.min(fileLines.length, trace.line + 20);
-            const contextSnippet = fileLines.slice(startLine, endLine).join('\n'); // DO NOT MAP LINE NUMBERS, it confuses the AI when making exact replacements
+            // INCLUDE LINE NUMBERS so the AI can define startLine and endLine
+            const contextSnippet = fileLines.slice(startLine, endLine).map((l, i) => `${startLine + i + 1}: ${l}`).join('\n');
+
+            // 🌐 Broadcast Matrix Glitch Event to Frontend
+            try {
+                const io = getIO();
+                io.emit('system-breach', { type: err.name, message: err.message, file: trace.filePath, snippet: contextSnippet });
+                console.log('[Self-Healer] Emitted system-breach WebSocket event to frontend clients.');
+            } catch (wErr) {
+                console.error('[Self-Healer] Failed to emit WebSocket event:', wErr);
+            }
 
             console.log('[Self-Healer] Analyzing fault context with AI...');
 
@@ -119,15 +132,16 @@ INSTRUCTIONS:
 1. Examine the error message and the exact code snippet provided above.
 2. Identify the exact lines of code causing the crash (e.g., undefined variable, bad property access, missing await, syntax error).
 3. Determine the fix.
-4. Output a JSON object containing the exact \`targetContent\` to be replaced and the \`replacementContent\` that fixes the bug.
-5. EXTREMELY IMPORTANT: The \`targetContent\` MUST EXACTLY match a contiguous block of code from the snippet, byte-for-byte, including all leading and trailing whitespace, indents, and newlines. If it doesn't match perfectly, the string replacement will fail and the server will die. Focus ONLY on the minimum number of lines needed to change.
-6. The \`replacementContent\` is your fixed version of those lines, maintaining the original indentation.
+4. Output a JSON object containing the \`startLine\` and \`endLine\` numbers of the buggy code to be replaced, and the \`replacementContent\` that fixes the bug.
+5. EXTREMELY IMPORTANT: The \`startLine\` and \`endLine\` MUST be integers representing the exact range of lines in the file that should be overwritten. Focus ONLY on the minimum number of lines needed to change.
+6. The \`replacementContent\` is your fixed version of those lines, maintaining the original indentation, BUT DO NOT prefix these replacement lines with line numbers! Just pure code.
 7. Wrap your entire response in a \`\`\`json block.
 
 JSON FORMAT:
 {
-  "targetContent": "exact string of broken code from file, preserving whitespace",
-  "replacementContent": "the fixed code to drop in, preserving whitespace",
+  "startLine": 48,
+  "endLine": 50,
+  "replacementContent": "    const size = bug?.length ?? 0;",
   "explanation": "brief overview of the fix"
 }
 `;
@@ -143,14 +157,18 @@ JSON FORMAT:
 
             const patch: PatchResult = JSON.parse(jsonMatch[1]);
             
-            if (!fileContent.includes(patch.targetContent)) {
-                 throw new Error("AI target content does not perfectly match the source file. Safety abort.");
+            if (patch.startLine > patch.endLine || patch.startLine < 1 || patch.endLine > fileLines.length) {
+                 throw new Error("AI returned invalid line numbers. Safety abort.");
             }
 
             console.log(`[Self-Healer] AI Diagnosis: ${patch.explanation}`);
-            console.log(`[Self-Healer] Applying patch to ${trace.filePath}...`);
+            console.log(`[Self-Healer] Applying patch to ${trace.filePath} from line ${patch.startLine} to ${patch.endLine}...`);
 
-            const patchedContent = fileContent.replace(patch.targetContent, patch.replacementContent);
+            // Apply patch via array splicing
+            const originalTargetLines = fileLines.slice(patch.startLine - 1, patch.endLine).join('\n');
+            const patchLines = patch.replacementContent.split('\n');
+            fileLines.splice(patch.startLine - 1, patch.endLine - patch.startLine + 1, ...patchLines);
+            const patchedContent = fileLines.join('\n');
             
             // 🛡️ AST Verification Check
             console.log('[Self-Healer] Verifying Abstract Syntax Tree (AST) of the patched code...');
@@ -192,6 +210,68 @@ JSON FORMAT:
                 console.log(`[Self-Healer] Git commit created and pushed on branch ${branchName}.`);
             } catch (gitErr) {
                 console.error('[Self-Healer] Failed to create git commit:', gitErr);
+            }
+
+            // 🎮 Auto-Generate Gauntlet Level from Bug
+            try {
+                console.log('[Self-Healer] Generating Gauntlet Level from this bug...');
+                const levelPrompt = `
+You are a technical game designer for 'Coding Gauntlet'. We just intercepted a real bug in our backend:
+ERROR: ${err.name}: ${err.message}
+FILE: ${path.basename(trace.filePath)}
+
+BROKEN CODE:
+${originalTargetLines}
+
+FIXED CODE:
+${patch.replacementContent}
+
+Turn this into a new coding challenge for our users to play.
+Output a JSON object matching this schema:
+{
+  "id": "generate_a_unique_slug_like_fix_typeerror_server_${Date.now()}",
+  "title": "Fix the ${err.name} in ${path.basename(trace.filePath)}",
+  "difficulty": "Hard",
+  "tags": ["bug-fix", "auto-generated", "real-world", "self-healer"],
+  "companies": ["JobGenesis"],
+  "description": "Write a short markdown description explaining the bug and asking the player to fix it. Keep it engaging and lore-friendly.",
+  "starterCode": {
+    "javascript": "string: The BROKEN CODE exactly as provided",
+    "python": "",
+    "java": "",
+    "cpp": ""
+  },
+  "functionName": "fixBug",
+  "testCases": [
+    {
+       "input": "Function arguments or 'execute'",
+       "expected": "Expected result or 'No Crash'"
+    }
+  ],
+  "isPremium": false
+}
+Wrap your response in a \`\`\`json block.
+`;
+                const levelResult = await model.generateContent(levelPrompt);
+                const levelText = levelResult.response.text();
+                const levelJsonMatch = levelText.match(/\`\`\`json\n([\s\S]*?)\n\`\`\`/);
+                
+                if (levelJsonMatch) {
+                    const problemData = JSON.parse(levelJsonMatch[1]);
+                    
+                    // We need to bypass the mongoose required validations cleanly, since AI generated it
+                    const newProblem = new Problem(problemData);
+                    await newProblem.save();
+                    console.log(`[Self-Healer] 🎮 Generated Gauntlet Level: ${problemData.title} and saved to database!`);
+                    
+                    // Tell clients the level is ready
+                    try {
+                        const io = getIO();
+                        io.emit('new-gauntlet-level', { id: problemData.id, title: problemData.title });
+                    } catch (e) {}
+                }
+            } catch (levelErr) {
+                console.error('[Self-Healer] Failed to generate Gauntlet Level:', levelErr);
             }
 
             console.log(`[Self-Healer] ✨ Auto-patch successful! Rebooting process to clear state...`);

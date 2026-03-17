@@ -41,6 +41,22 @@ export function initializeSocket(server: http.Server) {
       }
     );
 
+    // --- RECRUITER LIVE DASHBOARD EVENTS ---
+    socket.on("join_recruiter_room", () => {
+      socket.join("recruiter_room");
+      console.log(`👁️ Recruiter Dashboard joined global telemetry feed: ${socket.id}`);
+    });
+
+    socket.on("candidate_telemetry", (data: any) => {
+      // Broadcast this candidate's live stats to any connected recruiters
+      socket.to("recruiter_room").emit("candidate_telemetry", data);
+    });
+
+    socket.on("candidate_log", (data: { log: string }) => {
+      // Broadcast specific logs (like Proctor strikes) to recruiters
+      socket.to("recruiter_room").emit("candidate_log", data);
+    });
+
     socket.on("disconnect", () => {
       console.log(`❌ Socket disconnected: ${socket.id}`);
     });

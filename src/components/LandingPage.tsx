@@ -6,6 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface LandingPageProps {
     onEnterTerminal: () => void;
+    onDemoStart: () => void;
 }
 
 const radarData = [
@@ -17,7 +18,7 @@ const radarData = [
     { subject: 'Security', A: 80 },
 ];
 
-export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
+export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({ target: containerRef });
     const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
@@ -57,48 +58,60 @@ export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
     }, []);
 
     return (
-        <div ref={containerRef} className="min-h-screen bg-[#050505] text-white font-sans overflow-x-hidden selection:bg-[#00f0ff]/30 relative">
+        <div ref={containerRef} className="min-h-screen bg-[#020202] text-white font-sans overflow-x-hidden selection:bg-[#00f0ff]/30 relative">
+            {/* PHANTOM OVERLAYS */}
+            <div className="scanline" />
+            
             {/* Background Effects */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="mesh-gradient opacity-30" />
+                <div className="mesh-gradient opacity-40" />
+
+                {/* NEURAL SVG BACKGROUND (Interactive) */}
+                <svg className="absolute inset-0 w-full h-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="neural-glow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#00f0ff" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#00f0ff" stopOpacity="0" />
+                        </radialGradient>
+                    </defs>
+                    <motion.g style={{ translateX: springX, translateY: springY }}>
+                        <pattern id="neural-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                            <circle cx="2" cy="2" r="1" fill="#00f0ff" fillOpacity="0.5" />
+                            <path d="M 0 50 L 50 0 M 50 100 L 100 50" stroke="#00f0ff" strokeWidth="0.5" strokeOpacity="0.1" fill="none" />
+                        </pattern>
+                        <rect width="200%" height="200%" x="-50%" y="-50%" fill="url(#neural-pattern)" />
+                    </motion.g>
+                </svg>
 
                 {/* Animated Grid Lines */}
-                <div className="absolute inset-0 opacity-[0.05]"
+                <div className="absolute inset-0 opacity-[0.03]"
                     style={{
                         backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-                        backgroundSize: '80px 80px'
+                        backgroundSize: '120px 120px'
                     }}
                 />
-                <motion.div
-                    className="absolute inset-0 opacity-[0.1]"
-                    style={{
-                        backgroundImage: `linear-gradient(#00f0ff 1px, transparent 1px), linear-gradient(90deg, #00f0ff 1px, transparent 1px)`,
-                        backgroundSize: '400px 400px',
-                        translateX: springX,
-                        translateY: springY,
-                    }}
-                />
-
-                {/* Floating Particles */}
+                
+                {/* Floating Bio-Particles */}
                 {particles.map(p => (
                     <motion.div
                         key={p.id}
-                        className="absolute rounded-full bg-white/20"
+                        className="absolute rounded-full bg-[#00f0ff]/10 blur-[1px]"
                         style={{
-                            width: p.size,
-                            height: p.size,
+                            width: p.size * 2,
+                            height: p.size * 2,
                             left: `${p.x}%`,
                             top: `${p.y}%`
                         }}
                         animate={{
-                            y: [0, -100, 0],
-                            opacity: [0, 0.5, 0]
+                            y: [0, -200],
+                            opacity: [0, 0.4, 0],
+                            x: [0, Math.sin(p.id) * 50]
                         }}
                         transition={{
-                            duration: p.duration,
+                            duration: p.duration * 1.5,
                             repeat: Infinity,
                             delay: p.delay,
-                            ease: "linear"
+                            ease: "easeInOut"
                         }}
                     />
                 ))}
@@ -153,22 +166,29 @@ export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.1 }}
-                    className="text-6xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.9] italic"
+                    className="text-6xl md:text-[140px] font-black tracking-tighter mb-10 leading-[0.85] italic relative group"
                 >
-                    AI-POWERED <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500">
-                        CAREER GUIDE
+                    <span className="block text-white opacity-80 overflow-hidden relative">
+                        NEURAL <br />
+                        <motion.span 
+                            animate={{ opacity: [1, 0.5, 1] }} 
+                            transition={{ duration: 0.1, repeat: Infinity, repeatDelay: 5 }}
+                            className="bg-clip-text text-transparent bg-gradient-to-r from-[#00f0ff] via-white to-[#ff0044]"
+                        >
+                            GAUNTLET
+                        </motion.span>
                     </span>
+                    <div className="absolute -inset-x-20 top-1/2 -translate-y-1/2 h-[1px] bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent blur-sm group-hover:via-[#00f0ff]/60 transition-all duration-1000" />
                 </motion.h1>
 
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="text-lg md:text-xl text-gray-500 max-w-3xl mb-16 font-medium leading-relaxed uppercase tracking-tight"
+                    className="text-lg md:text-2xl text-gray-400 max-w-4xl mb-16 font-medium leading-relaxed uppercase tracking-tighter"
                 >
-                    Upload your resume. Find your skill gaps. <br />
-                    Build your career path with AI guidance.
+                    A hyper-realistic hiring simulation powered by the <span className="text-[#00f0ff]">Phantom Protocol</span>. <br />
+                    Upload your profile. Bridge the gap. Secure the mission.
                 </motion.p>
 
                 <motion.div
@@ -184,9 +204,9 @@ export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
                         Start Analysis <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                     <button
-                        onClick={onEnterTerminal}
+                        onClick={onDemoStart}
                         className="px-12 py-6 bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all flex items-center gap-4 group">
-                        <Play size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" /> Watch Demo
+                        <Play size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" /> Investor Demo
                     </button>
                 </motion.div>
 

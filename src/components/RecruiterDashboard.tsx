@@ -10,6 +10,7 @@ import {
     XAxis, Tooltip, ResponsiveContainer,
     AreaChart, Area
 } from 'recharts';
+import { getSocket } from '../socket';
 
 // Mock Data
 const radarData = [
@@ -32,12 +33,7 @@ const lineData = [
 
 
 
-const mockCandidates = [
-    { id: 'C-9921', name: 'Alex Chen', role: 'Frontend Eng.', score: 94, risk: 'Low', fit: 98, avatar: 'https://i.pravatar.cc/150?u=1' },
-    { id: 'C-9922', name: 'Sarah Jenkins', role: 'Full Stack', score: 87, risk: 'Low', fit: 91, avatar: 'https://i.pravatar.cc/150?u=2' },
-    { id: 'C-9923', name: 'Marcus Doe', role: 'Backend Eng.', score: 72, risk: 'High', fit: 65, avatar: 'https://i.pravatar.cc/150?u=3' },
-    { id: 'C-9924', name: 'Elena Rostova', role: 'AI Engineer', score: 96, risk: 'Low', fit: 99, avatar: 'https://i.pravatar.cc/150?u=4' },
-];
+// We now use live activeCandidates via WebSockets instead of mockCandidates
 
 const logsList = [
     "> [SYSTEM] Initializing Vanguard Protocol...",
@@ -70,6 +66,44 @@ export function RecruiterDashboard({ onLogout }: { onLogout: () => void }) {
             }
         }, 150);
         return () => clearInterval(typingInterval);
+    }, []);
+
+    // LIVE WEBSOCKET TELEMETRY
+    const [activeCandidates, setActiveCandidates] = useState<any[]>([]);
+
+    useEffect(() => {
+        const socket = getSocket();
+        socket.emit("join_recruiter_room");
+
+        const handleTelemetry = (data: any) => {
+            setActiveCandidates(prev => {
+                const exists = prev.find(c => c.id === data.id);
+                if (exists) {
+                    return prev.map(c => c.id === data.id ? { ...c, ...data } : c);
+                } else {
+                    return [...prev, {
+                        ...data,
+                        avatar: `https://i.pravatar.cc/150?u=${data.id}`
+                    }];
+                }
+            });
+        };
+
+        const handleLog = (data: { log: string }) => {
+            setLogs(prev => {
+                const newLogs = [...prev, data.log];
+                if (newLogs.length > 50) newLogs.shift();
+                return newLogs;
+            });
+        };
+
+        socket.on("candidate_telemetry", handleTelemetry);
+        socket.on("candidate_log", handleLog);
+
+        return () => {
+            socket.off("candidate_telemetry", handleTelemetry);
+            socket.off("candidate_log", handleLog);
+        };
     }, []);
 
     // Live Log generation
@@ -360,11 +394,18 @@ export function RecruiterDashboard({ onLogout }: { onLogout: () => void }) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {mockCandidates.map((cand, idx) => (
+                                        {activeCandidates.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="py-8 text-center text-gray-500 font-mono text-xs">
+                                                    Awaiting live connections...
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {activeCandidates.map((cand, idx) => (
                                             <motion.tr
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
-                                                transition={{ delay: 0.9 + (idx * 0.1) }}
+                                                transition={{ delay: 0.1 * idx }}
                                                 key={cand.id}
                                                 className="hover:bg-white/[0.02] transition-colors group"
                                             >
