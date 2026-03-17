@@ -3,15 +3,17 @@ import { Problem } from "../../models/Problem.model";
 import IORedis from 'ioredis';
 import { runJavaScript } from './jsRunner';
 
-const REDIS_URI = process.env.REDIS_URI;
+const REDIS_URI = process.env.REDIS_URI || process.env.REDIS_URL;
 let connection: IORedis | null = null;
 let codeQueue: Queue | null = null;
 
 if (REDIS_URI && REDIS_URI !== 'false') {
     try {
+        const isTLS = REDIS_URI.startsWith('rediss://');
         connection = new IORedis(REDIS_URI, {
             maxRetriesPerRequest: null,
             connectTimeout: 5000,
+            tls: isTLS ? {} : undefined,
             retryStrategy: (times) => {
                 if (times > 3) return null; // try 3 times then give up
                 return 2000;
