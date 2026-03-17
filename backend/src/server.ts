@@ -12,7 +12,9 @@ import { setupWorker } from "./services/judge/queue";
 import { SelfHealer } from "./services/ai/selfHealer";
 
 const PORT = Number(process.env.PORT) || 4000;
-const numCPUs = os.cpus().length;
+// In production (Render/Heroku/Vercel), we should cap workers to avoid memory exhaustion (512MB limit)
+const maxWorkers = Number(process.env.WEB_CONCURRENCY) || Number(process.env.MAX_WORKERS) || 2;
+const numCPUs = Math.min(os.cpus().length, maxWorkers);
 
 function checkConfig() {
   const required = ["MONGO_URI", "JWT_SECRET"];
