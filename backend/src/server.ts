@@ -1,19 +1,18 @@
+import cluster from "cluster";
+import os from "os";
+import http from "http";
 import dotenv from "dotenv";
 import "dotenv/config";
 dotenv.config();
 
 import { app } from "./app";
 import { connectDB } from "./db/connect";
-import http from "http";
 import { initializeSocket } from "./socketService";
 import { setupWorker } from "./services/judge/queue";
 import { SelfHealer } from "./services/ai/selfHealer";
 
-const PORT = process.env.PORT || 4000;
-
-// Initialize Auto-Healing Bot
-const healer = new SelfHealer();
-app.use(healer.expressErrorHandler);
+const PORT = Number(process.env.PORT) || 4000;
+const numCPUs = os.cpus().length;
 
 function checkConfig() {
   const required = ["MONGO_URI", "JWT_SECRET"];
@@ -25,23 +24,70 @@ function checkConfig() {
   }
 }
 
-(async () => {
-  try {
-    checkConfig();
-    console.log("📂 Connecting to Database...");
-    await connectDB();
-    console.log("👷 Starting BullMQ Background Worker...");
-    setupWorker();
+if (cluster.isPrimary) {
+  console.log(`🚀 Primary process ${process.pid} is running`);
+  console.log(`🧵 Spawning ${numCPUs} worker processes...`);
 
-    const httpServer = http.createServer(app);
-    initializeSocket(httpServer);
+  checkConfig();
 
-    httpServer.listen(PORT, () => {
-      console.log(`🚀 Backend running on http://localhost:${PORT}`);
-      console.log(`🔄 Socket.IO ready`);
-    });
-  } catch (err) {
-    console.error("❌ BOOT FAILED:", err);
-    process.exit(1);
+  // Fork workers
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
   }
-})();
+
+  cluster.on("exit", (worker, code, signal) => {
+    console.error(`🔴 Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}). Spawning replacement...`);
+    cluster.fork();
+  });
+
+  // Handle graceful shutdown for primary
+  const shutdown = () => {
+    console.log("🛑 Primary received shutdown signal. Terminating workers...");
+    for (const id in cluster.workers) {
+      cluster.workers[id]?.kill();
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+
+} else {
+  // Workers handle HTTP and Socket connections
+  (async () => {
+    try {
+      console.log(`📂 Worker ${process.pid}: Connecting to Database...`);
+      await connectDB();
+      
+      console.log(`👷 Worker ${process.pid}: Starting BullMQ Background Worker...`);
+      setupWorker();
+
+      // Initialize Auto-Healing Bot per worker
+      const healer = new SelfHealer();
+      app.use(healer.expressErrorHandler);
+
+      const httpServer = http.createServer(app);
+      initializeSocket(httpServer);
+
+      const server = httpServer.listen(PORT, () => {
+        console.log(`🚀 Worker ${process.pid} running on http://localhost:${PORT}`);
+      });
+
+      // Graceful shutdown for worker
+      const workerShutdown = () => {
+        console.log(`🛑 Worker ${process.pid} shutting down...`);
+        server.close(() => {
+          console.log(`✅ Worker ${process.pid} offline.`);
+          process.exit(0);
+        });
+      };
+
+      process.on("SIGTERM", workerShutdown);
+      process.on("SIGINT", workerShutdown);
+
+    } catch (err) {
+      console.error(`❌ Worker ${process.pid} startup failed:`, err);
+      process.exit(1);
+    }
+  })();
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Shield, Code2, Cpu, GitBranch, Lock, Award, TrendingUp } from 'lucide-react';
+import { Shield, Code2, Cpu, GitBranch, Lock, Award, TrendingUp } from 'lucide-react';
 
 interface SkillTree {
     frontend: number;
@@ -153,6 +153,7 @@ export function NeuralSkillTree() {
                         const circumference = 2 * Math.PI * R;
                         const isHovered = hoveredNode === node.id;
                         const isSelected = selectedNode === node.id;
+                        const isLegendary = level >= 10;
 
                         return (
                             <g
@@ -163,9 +164,21 @@ export function NeuralSkillTree() {
                                 onMouseLeave={() => setHoveredNode(null)}
                                 onClick={() => setSelectedNode(prev => prev === node.id ? null : node.id)}
                             >
+                                {/* Legendary Pulse Ring */}
+                                {isLegendary && (
+                                    <motion.circle
+                                        r={R + 10}
+                                        fill="none"
+                                        stroke={node.color}
+                                        strokeWidth={1}
+                                        animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                    />
+                                )}
+
                                 {/* Glow radial background */}
-                                {(isHovered || isSelected) && (
-                                    <circle r={60} fill={`url(#grd-${node.id})`} />
+                                {(isHovered || isSelected || isLegendary) && (
+                                    <circle r={isLegendary ? 80 : 60} fill={`url(#grd-${node.id})`} opacity={isLegendary ? 1 : 0.6} />
                                 )}
 
                                 {/* XP Ring */}
@@ -179,7 +192,7 @@ export function NeuralSkillTree() {
                                     r={R}
                                     fill="none"
                                     stroke={node.color}
-                                    strokeWidth={6}
+                                    strokeWidth={isLegendary ? 8 : 6}
                                     strokeDasharray={circumference}
                                     strokeDashoffset={circumference * (1 - progress)}
                                     strokeLinecap="round"
@@ -192,11 +205,16 @@ export function NeuralSkillTree() {
                                 <circle r={32} fill="#0f172a" stroke={node.color} strokeWidth={1} strokeOpacity={0.4} />
 
                                 {/* Icon and Level */}
-                                <foreignObject x={-12} y={-24} width={24} height={24} style={{ color: node.color }}>
-                                    <div xmlns="http://www.w3.org/1999/xhtml" className="flex items-center justify-center w-6 h-6">
+                                <motion.foreignObject 
+                                    x={-12} y={-24} width={24} height={24} 
+                                    style={{ color: node.color }}
+                                    animate={isLegendary ? { scale: [1, 1.2, 1] } : {}}
+                                    transition={{ duration: 1, repeat: Infinity }}
+                                >
+                                    <div className="flex items-center justify-center w-6 h-6">
                                         {node.icon}
                                     </div>
-                                </foreignObject>
+                                </motion.foreignObject>
                                 <text
                                     y={14}
                                     textAnchor="middle"

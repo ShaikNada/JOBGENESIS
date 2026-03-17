@@ -4,6 +4,8 @@ import { usePreferences } from '../hooks/usePreferences';
 import { toast } from 'react-hot-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { NeuralSkillTree } from './NeuralSkillTree';
+import { motion } from 'framer-motion';
+import { getSocket } from '../socket';
 
 interface JobDashboardProps {
     userName: string;
@@ -12,9 +14,10 @@ interface JobDashboardProps {
     onViewProfile: () => void;
     onUploadResume?: () => void;
     onLogout: () => void;
+    isInvestor?: boolean;
 }
 
-export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewProfile, onUploadResume, onLogout }: JobDashboardProps) => {
+export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewProfile, onUploadResume, onLogout, isInvestor = false }: JobDashboardProps) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'auto' | 'target' | 'bounties' | 'neural' | 'coop'>('overview');
     const [bounties, setBounties] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
@@ -37,6 +40,27 @@ export const JobDashboard = ({ userName, resumeData, onStartSimulation, onViewPr
     const [autoMatchedJobs, setAutoMatchedJobs] = useState<any[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
     const { difficulty, setDifficulty } = usePreferences();
+
+    // Investor Demo State
+    const [simulating, setSimulating] = useState(false);
+
+    const triggerSimulation = (type: string) => {
+        setSimulating(true);
+        getSocket().emit('simulate_investor', { type, action: 'start' });
+        toast.success(`Started Simulation: ${type.toUpperCase()}`);
+    };
+
+    const triggerGlitch = () => {
+        setSimulating(true);
+        getSocket().emit('simulate_investor', { type: 'glitch', action: 'fire' });
+        toast.error(`System Anomaly Injected!`);
+    };
+
+    const stopSimulations = () => {
+        setSimulating(false);
+        getSocket().emit('simulate_investor', { action: 'stop' });
+        toast.success(`Simulations Terminated.`);
+    };
 
     const ROLES = [
         { id: 'Frontend Engineer', label: 'Frontend Engineer', icon: Globe, desc: 'React, Vue, UI/UX' },

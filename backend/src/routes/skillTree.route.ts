@@ -19,8 +19,8 @@ skillTreeRouter.get("/", protect as any, async (req: any, res) => {
 // POST /api/skill-tree/award — Award XP (called internally from controllers)
 skillTreeRouter.post("/award", protect as any, async (req: any, res) => {
     try {
-        const { event, domains, isBounty } = req.body;
-        const result = await awardXP(req.user._id.toString(), event, domains, isBounty);
+        const { event, domains, isBounty, difficulty } = req.body;
+        const result = await awardXP(req.user._id.toString(), event, domains, isBounty, difficulty);
         return res.json(result);
     } catch (e) {
         console.error("XP award error:", e);

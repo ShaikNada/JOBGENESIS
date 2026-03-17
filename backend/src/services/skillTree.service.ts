@@ -57,12 +57,19 @@ export async function awardXP(
     userId: string,
     event: string,
     domains: SkillDomain[],
-    isBounty = false
+    isBounty = false,
+    difficulty: 'easy' | 'normal' | 'hard' = 'normal'
 ) {
     const user = await User.findById(userId);
     if (!user) return null;
 
-    const xp = XP_PER_EVENT[event] || 50;
+    let baseXP = XP_PER_EVENT[event] || 50;
+
+    // Apply difficulty multiplier
+    if (difficulty === 'easy') baseXP *= 0.8;
+    if (difficulty === 'hard') baseXP *= 1.5;
+
+    const xp = Math.round(baseXP);
     const domainShare = Math.floor(xp / (domains.length || 1));
 
     // Accumulate XP across the relevant domains

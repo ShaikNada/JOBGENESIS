@@ -2,32 +2,18 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redisClient from '../db/redis';
 
-// Default options if Redis is unavailable
-const fallbackStore = undefined;
+// For 10,000 users, memory store is insufficient as it doesn't sync across clustered workers.
+// We strictly require Redis in production-like environments.
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (!redisClient && isProduction) {
+    console.error("❌ CRITICAL ERROR: REDIS_URI is required for rate limiting in production clustering.");
+    process.exit(1);
+}
 
 export const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    store: redisClient
-        ? new RedisStore({
-            sendCommand: async (...args: string[]) => {
-                const client = redisClient!;
-                return client.call(args[0], ...args.slice(1)) as any;
-            },
-        })
-        : fallbackStore, // Use memory store if Redis is offline
-    message: {
-        status: 429,
-        message: "Too many requests from this IP, please try again after 15 minutes."
-    }
-});
-
-// A stricter limit specifically for AI Generation Endpoints
-export const aiEndpointLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 20, // Limit each IP to 20 AI Generations per hour to control API costs
+    max: 100, // Limit each IP to 100 requests per 15 mins
     standardHeaders: true,
     legacyHeaders: false,
     store: redisClient
@@ -37,9 +23,29 @@ export const aiEndpointLimiter = rateLimit({
                 return client.call(args[0], ...args.slice(1)) as any;
             },
         })
-        : fallbackStore,
+        : undefined, // Memory store fallback only for dev
     message: {
         status: 429,
-        message: "You have exhausted your AI Generation quota for the hour. Please wait."
+        message: "High traffic detected. Please try again after 15 minutes."
+    }
+});
+
+// A stricter limit specifically for AI Generation Endpoints
+export const aiEndpointLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20, // Limit each IP to 20 AI Generations per hour
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: redisClient
+        ? new RedisStore({
+            sendCommand: async (...args: string[]) => {
+                const client = redisClient!;
+                return client.call(args[0], ...args.slice(1)) as any;
+            },
+        })
+        : undefined,
+    message: {
+        status: 429,
+        message: "AI quota exceeded for this hour. Scalability protection in effect."
     }
 });

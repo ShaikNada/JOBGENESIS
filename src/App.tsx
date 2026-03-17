@@ -108,11 +108,24 @@ function App() {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/skill-tree/award`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ event, domains: roleToDomains(missionConfig.role), isBounty })
+        body: JSON.stringify({ 
+          event, 
+          domains: roleToDomains(missionConfig.role), 
+          isBounty,
+          difficulty: missionConfig.difficulty || 'normal' 
+        })
       });
       if (res.ok) {
         const data = await res.json();
         toast.success(`⚡ +XP Awarded! Total: ${data?.skillTree?.totalXP || '??'}`, { duration: 3000 });
+        
+        // Live feedback for recruiter
+        emitTelemetry({ 
+          totalXP: data?.skillTree?.totalXP, 
+          badges: data?.badges?.length,
+          status: `Achievement: ${event}`
+        });
+
         // Check for newly unlocked badges
         if (data?.badges?.length) {
           const latest = data.badges[data.badges.length - 1];
@@ -254,6 +267,7 @@ function App() {
           onViewProfile={() => setView('profile')}
           onUploadResume={() => setView('resume')}
           onLogout={handleLogout}
+          isInvestor={user === 'Investor Operative'}
         />
       )}
 

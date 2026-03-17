@@ -8,7 +8,6 @@ export const useAntiCheat = (onStrike?: (reason: string) => void) => {
   // Keystroke cadence tracking
   const lastKeyTime = useRef<number>(Date.now());
   const keystrokeCount = useRef<number>(0);
-  const wpmHistory = useRef<number[]>([]);
 
   useEffect(() => {
     // 1. Window Blur Detection (Clicking out of the tab)
