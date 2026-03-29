@@ -17,7 +17,7 @@ const maxWorkers = Number(process.env.WEB_CONCURRENCY) || Number(process.env.MAX
 const numCPUs = Math.min(os.cpus().length, maxWorkers);
 
 function checkConfig() {
-  const required = ["MONGO_URI", "JWT_SECRET"];
+  const required = ["MONGO_URI", "FIREBASE_PROJECT_ID"];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {

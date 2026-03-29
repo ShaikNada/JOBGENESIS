@@ -55,7 +55,10 @@ jobs:
         run: |
           cd ml-engine
           pip install -r requirements.txt
+      - name: Download SpaCy Model
+        run: |
+          python -m spacy download en_core_web_sm
       - name: Link Check
         run: |
           cd ml-engine
-          python -c "import spacy; print('SpaCy installed')"
+          python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('SpaCy model loaded success')"

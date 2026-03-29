@@ -1,14 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import admin from "../lib/firebase";
 import { User } from "../models/User.model";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-    console.warn("⚠️ WARNING: JWT_SECRET is not defined in environment variables. Using unsafe default for development.");
-}
-
-const SECRET_KEY = JWT_SECRET || "dev_secret_key_123";
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -17,20 +9,30 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
             token = req.headers.authorization.split(" ")[1];
 
-            const decoded = jwt.verify(token, SECRET_KEY) as { id: string };
-
-            (req as any).user = await User.findById(decoded.id).select("-password");
-
-            if (!(req as any).user) {
-                return res.status(401).json({ message: "Not authorized, user not found" });
+            // Verify Firebase ID Token
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            
+            if (!decodedToken.email) {
+                return res.status(401).json({ message: "Not authorized, token invalid" });
             }
 
+            // Find user in MongoDB by email
+            const user = await User.findOne({ email: decodedToken.email }).select("-password");
+
+            if (!user) {
+                return res.status(401).json({ message: "Not authorized, user not found in database" });
+            }
+
+            (req as any).user = user;
             next();
         } else {
             res.status(401).json({ message: "Not authorized, no token" });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Auth Middleware Error:", error);
+        if (error.code === "auth/id-token-expired") {
+            return res.status(401).json({ message: "Firebase token expired" });
+        }
         res.status(401).json({ message: "Not authorized, token failed" });
     }
 };

@@ -2,30 +2,9 @@ import { Request, Response } from "express";
 import { User } from "../models/User.model";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import admin from "firebase-admin";
+import admin from "../lib/firebase";
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// Initialize Firebase Admin SDK once (uses GOOGLE_APPLICATION_CREDENTIALS env variable OR
-// FIREBASE_SERVICE_ACCOUNT_JSON env variable as JSON string for serverless platforms like Render)
-if (!admin.apps.length) {
-    try {
-        const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-        if (serviceAccountJson) {
-            const serviceAccount = JSON.parse(serviceAccountJson);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount),
-            });
-            console.log("✅ Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_JSON");
-        } else {
-            // Falls back to Application Default Credentials (works on GCP/Firebase hosting)
-            admin.initializeApp();
-            console.log("✅ Firebase Admin initialized via Application Default Credentials");
-        }
-    } catch (e) {
-        console.warn("⚠️ Firebase Admin init failed. Google auth will not work:", e);
-    }
-}
 
 const generateToken = (id: string) => {
     if (!JWT_SECRET) throw new Error("JWT_SECRET is not defined");
@@ -138,9 +117,9 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 };
 
-// @desc    Firebase Google Auth (verifies Firebase ID token from frontend)
-// @route   POST /api/auth/google
-export const googleAuth = async (req: Request, res: Response) => {
+// @desc    Sync Firebase user with MongoDB
+// @route   POST /api/auth/firebase
+export const syncUser = async (req: Request, res: Response) => {
     try {
         const { token, role } = req.body;
 
@@ -160,22 +139,23 @@ export const googleAuth = async (req: Request, res: Response) => {
         let user = await User.findOne({ email });
 
         if (!user) {
-            // Create new user via Google / Firebase
+            // Create new user via Firebase
             user = await User.create({
-                name: name || "Google User",
+                name: name || email.split("@")[0],
                 email,
-                googleId: uid,
+                googleId: uid, // We can rename this to firebaseUid later
                 avatar: picture,
-                authProvider: "google",
+                authProvider: decodedToken.firebase.sign_in_provider === "google.com" ? "google" : "local",
                 isVerified: true, // Firebase already verified the email
                 role: role === "recruiter" ? "recruiter" : "candidate",
                 password: crypto.randomBytes(32).toString("hex"), // random unusable password
             });
-            console.log(`✅ New Firebase Google user created: ${email}`);
-        } else if (!user.googleId) {
-            // Link existing local account to Google
-            user.googleId = uid;
-            user.authProvider = "google";
+            console.log(`✅ New Firebase user created/synced: ${email}`);
+        } else {
+            // Update existing user if needed
+            if (name && !user.name) user.name = name;
+            if (picture && !user.avatar) user.avatar = picture;
+            // Always set verified if coming from Firebase
             user.isVerified = true;
             await user.save();
         }
@@ -187,18 +167,17 @@ export const googleAuth = async (req: Request, res: Response) => {
             role: user.role,
             avatar: user.avatar,
             resumeData: user.resumeData,
-            token: generateToken(user.id),
+            // We return the same token back or just a success status
+            // The frontend should store the Firebase ID Token
+            token: token, 
         });
 
     } catch (error: any) {
-        console.error("Firebase Auth Error:", error);
+        console.error("Firebase Sync Error:", error);
         if (error.code === "auth/id-token-expired") {
             return res.status(401).json({ message: "Firebase token expired. Please sign in again." });
         }
-        if (error.code === "auth/argument-error" || error.code === "auth/invalid-id-token") {
-            return res.status(401).json({ message: "Invalid Firebase token." });
-        }
-        res.status(401).json({ message: "Google authentication failed", error: error.message });
+        res.status(401).json({ message: "Firebase authentication failed", error: error.message });
     }
 };
 

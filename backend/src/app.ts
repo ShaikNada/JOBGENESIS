@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import "./lib/firebase";
 
 export const app = express();
 

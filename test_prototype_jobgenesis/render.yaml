@@ -1,0 +1,37 @@
+services:
+  # Node.js Backend API
+  - type: web
+    name: jobgenesis-api
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ML_ENGINE_URL
+        fromService:
+          type: web
+          name: jobgenesis-ml
+          property: host
+
+  # Python ML Microservice
+  - type: web
+    name: jobgenesis-ml
+    env: python
+    rootDir: ml-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URI
+        sync: false
