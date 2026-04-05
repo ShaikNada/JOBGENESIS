@@ -5,8 +5,9 @@ import { Mission } from "../models/Mission.model";
 import { processMissionForCAL } from "../services/ai/calService";
 import { User } from "../models/User.model";
 import { executeCareerPathAnalysis } from "../services/jobs/careerPathService";
+import { searchJobsOnWeb, autoMatchLive } from "../services/ai/liveSearch";
 
-// @desc    Get AI-matched jobs based on resume (Real Search)
+// @desc    Get AI-matched jobs based on resume (Real Web Search)
 // @route   POST /api/jobs/match
 export const matchJobs = async (req: Request, res: Response) => {
   try {
@@ -16,10 +17,16 @@ export const matchJobs = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Resume data required" });
     }
 
-    const primaryRole = resumeData.suggestedRoles?.[0] || resumeData.experienceLevel || "Software Engineer";
-    const jobs = await fetchRealJobs(primaryRole, resumeData);
+    const liveJobs = await autoMatchLive(resumeData);
+    
+    // If live search fails, use the internal AI simulation as a robust fallback
+    if (!liveJobs || liveJobs.length === 0) {
+      const primaryRole = resumeData.suggestedRoles?.[0] || resumeData.experienceLevel || "Software Engineer";
+      const fallbackJobs = await fetchRealJobs(primaryRole, resumeData);
+      return res.json(fallbackJobs);
+    }
 
-    res.json(jobs);
+    res.json(liveJobs);
   } catch (error) {
     console.error("Job Match Error:", error);
     res.status(500).json({ message: "Failed to fetch real jobs" });
@@ -61,7 +68,7 @@ export const analyzeGap = async (req: Request, res: Response) => {
   }
 };
 
-// @desc    Analyze career path for target role and company
+// @desc    Analyze career path for target role and company (Live Search First)
 // @route   POST /api/jobs/target-path
 export const analyzeTargetPath = async (req: Request, res: Response) => {
   try {
@@ -71,8 +78,19 @@ export const analyzeTargetPath = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Missing required profile or target data" });
     }
 
+    // 1. First, check if there are actual vacancies on the live web
+    const liveResults = await searchJobsOnWeb(targetRole, targetCompany);
+    const isAvailable = liveResults.some(r => r.isAvailable);
+
+    // 2. Perform the traditional AI career path analysis (The Coach part)
     const analysis = await executeCareerPathAnalysis(resumeData, targetRole, targetCompany, level || "Junior");
-    res.json(analysis);
+    
+    // 3. Merge findings
+    res.json({
+        ...analysis,
+        liveVacancies: liveResults,
+        isAvailable: isAvailable
+    });
   } catch (error) {
     console.error("Target Path Analysis Error:", error);
     res.status(500).json({ message: "Failed to analyze target path" });

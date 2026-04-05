@@ -9,5 +9,8 @@ load_dotenv(dotenv_path=backend_env_path)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/jobgenesis")
 
 client = MongoClient(MONGO_URI)
-db = client.get_default_database() if client.get_default_database().name else client.get_database("test")
+try:
+    db = client.get_default_database()
+except Exception:
+    db = client.get_database("test")
 skills_collection = db.skills

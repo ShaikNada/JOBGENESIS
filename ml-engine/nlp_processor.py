@@ -42,4 +42,16 @@ def extract_skills_spacy(text: str) -> list[str]:
         if chunk_text in known_skills:
             extracted.add(chunk_text)
 
+    # 3. Robust Pattern Fallback (Hackathon Safety Net)
+    # Catches common patterns like "Node.js", "React-Native", etc.
+    import re
+    tech_patterns = [
+        r'\b[a-z]+\.js\b', r'\b[a-z]+\.py\b', r'\b[a-z]+[#+]{1,2}', 
+        r'\baws\b', r'\bazure\b', r'\bgcp\b', r'\bdocker\b', r'\bk8s\b'
+    ]
+    for pattern in tech_patterns:
+        matches = re.findall(pattern, text.lower())
+        for m in matches:
+            extracted.add(m)
+
     return list(extracted)

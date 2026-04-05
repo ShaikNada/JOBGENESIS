@@ -36,6 +36,7 @@ import assessmentRouter from "./routes/assessment.route";
 import recruiterRouter from "./routes/recruiter.route";
 import { demoRouter } from "./routes/demo.route";
 import { simulationRouter } from "./routes/simulation.route";
+import { careerRouter } from "./routes/career.route";
 import { aiEndpointLimiter } from "./middleware/rateLimiter";
 
 app.use("/api/health", healthRouter);
@@ -51,3 +52,4 @@ app.use("/api/skill-gap", aiEndpointLimiter, skillGapRouter);
 app.use("/api/interview", aiEndpointLimiter, interviewRouter);
 app.use("/api/assessment", aiEndpointLimiter, assessmentRouter);
 app.use("/api/recruiter", recruiterRouter);
+app.use("/api/careers", aiEndpointLimiter, careerRouter);

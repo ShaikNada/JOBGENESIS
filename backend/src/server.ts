@@ -26,7 +26,7 @@ function checkConfig() {
   }
 }
 
-if (cluster.isPrimary) {
+if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
   console.log(`🚀 Primary process ${process.pid} is running`);
   console.log(`🧵 Spawning ${numCPUs} worker processes...`);
 

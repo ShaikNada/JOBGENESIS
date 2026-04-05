@@ -20,6 +20,7 @@ if (REDIS_URI && REDIS_URI !== 'false') {
         });
         redisClient.on('connect', () => console.log('🟢 Redis (Upstash) Connected successfully'));
         redisClient.on('error', (err) => {
+            if (err.message.includes('ECONNRESET')) return;
             console.error('🔴 Redis Connection Error:', err.message);
         });
     } catch (err) {

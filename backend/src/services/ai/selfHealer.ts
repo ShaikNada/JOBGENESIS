@@ -2,18 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getAIClient } from './modelRouter';
 import ts from 'typescript';
 import { getIO } from '../../socketService';
 import { Problem } from '../../models/Problem.model';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-interface PatchResult {
-    startLine: number;
-    endLine: number;
-    replacementContent: string;
-    explanation: string;
-}
 
 export class SelfHealer {
     private isHealing = false;
@@ -22,8 +14,9 @@ export class SelfHealer {
     private readonly projectRoot = path.join(process.cwd(), 'src');
 
     constructor() {
-        if (!process.env.GEMINI_API_KEY) {
-            console.warn('[Self-Healer] GEMINI_API_KEY is missing. Self-healing is disabled.');
+        const client = getAIClient();
+        if (!client) {
+            console.warn('[Self-Healer] No Gemini keys available in pool. Self-healing is disabled.');
             return;
         }
         
@@ -115,7 +108,9 @@ export class SelfHealer {
 
             console.log('[Self-Healer] Analyzing fault context with AI...');
 
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const client = getAIClient();
+            if (!client) throw new Error("AI_CLIENT_UNAVAILABLE");
+            const model = client.getGenerativeModel({ model: "gemini-2.5-flash" });
             const prompt = `
 You are an advanced self-healing code robot tasked with recovering a Node.js/TypeScript backend from a fatal crash.
 

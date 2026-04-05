@@ -296,7 +296,7 @@ export function RecruiterDashboard({ onLogout }: { onLogout: () => void }) {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#00f0ff]/5 blur-3xl rounded-full"></div>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Global Talent Matrix</h3>
                                 <div className="h-[250px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                    <ResponsiveContainer width="100%" height={250} minWidth={0}>
                                         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                                             <PolarGrid stroke="rgba(255,255,255,0.1)" />
                                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} />
@@ -317,7 +317,7 @@ export function RecruiterDashboard({ onLogout }: { onLogout: () => void }) {
                                 <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#00f0ff]/5 to-transparent pointer-events-none"></div>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Real-time Acquisition Trend</h3>
                                 <div className="h-[250px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                    <ResponsiveContainer width="100%" height={250} minWidth={0}>
                                         <AreaChart data={lineData}>
                                             <defs>
                                                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">

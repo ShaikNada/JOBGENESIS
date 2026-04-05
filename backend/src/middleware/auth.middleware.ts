@@ -29,10 +29,11 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
             res.status(401).json({ message: "Not authorized, no token" });
         }
     } catch (error: any) {
-        console.error("Auth Middleware Error:", error);
         if (error.code === "auth/id-token-expired") {
+            // Silently handle expired tokens (cleaned up terminal)
             return res.status(401).json({ message: "Firebase token expired" });
         }
+        console.error("Auth Middleware Error:", error);
         res.status(401).json({ message: "Not authorized, token failed" });
     }
 };

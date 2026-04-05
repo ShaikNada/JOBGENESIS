@@ -53,6 +53,9 @@ def analyze_skills(req: AnalyzeRequest):
             confidenceScore=classification_result["confidence"],
             recommendations=recs
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/ml/train")
 def train_model():
     """
@@ -83,4 +86,4 @@ def train_model():
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

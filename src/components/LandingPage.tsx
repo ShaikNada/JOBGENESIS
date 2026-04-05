@@ -1,4 +1,4 @@
-import { ArrowRight, BrainCircuit, Terminal, ShieldAlert, Cpu, Play, Users, Zap, Activity, Target, UploadCloud, Map, BarChart3 } from 'lucide-react';
+import { ArrowRight, BrainCircuit, Terminal, ShieldAlert, Cpu, Users, Zap, Activity, Target, UploadCloud, Map, BarChart3 } from 'lucide-react';
 import { useEffect, useRef, useMemo } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
@@ -6,7 +6,6 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface LandingPageProps {
     onEnterTerminal: () => void;
-    onDemoStart: () => void;
 }
 
 const radarData = [
@@ -18,9 +17,9 @@ const radarData = [
     { subject: 'Security', A: 80 },
 ];
 
-export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) => {
+export const LandingPage = ({ onEnterTerminal }: LandingPageProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({ target: containerRef });
+    const { scrollYProgress } = useScroll();
     const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
     const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.9]);
 
@@ -169,13 +168,13 @@ export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) 
                     className="text-6xl md:text-[140px] font-black tracking-tighter mb-10 leading-[0.85] italic relative group"
                 >
                     <span className="block text-white opacity-80 overflow-hidden relative">
-                        NEURAL <br />
+                        CAREER <br />
                         <motion.span 
                             animate={{ opacity: [1, 0.5, 1] }} 
                             transition={{ duration: 0.1, repeat: Infinity, repeatDelay: 5 }}
                             className="bg-clip-text text-transparent bg-gradient-to-r from-[#00f0ff] via-white to-[#ff0044]"
                         >
-                            GAUNTLET
+                            INTELLIGENCE
                         </motion.span>
                     </span>
                     <div className="absolute -inset-x-20 top-1/2 -translate-y-1/2 h-[1px] bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent blur-sm group-hover:via-[#00f0ff]/60 transition-all duration-1000" />
@@ -187,8 +186,8 @@ export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) 
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className="text-lg md:text-2xl text-gray-400 max-w-4xl mb-16 font-medium leading-relaxed uppercase tracking-tighter"
                 >
-                    A hyper-realistic hiring simulation powered by the <span className="text-[#00f0ff]">Phantom Protocol</span>. <br />
-                    Upload your profile. Bridge the gap. Secure the mission.
+                    A realistic hiring simulation powered by <span className="text-[#00f0ff]">Advanced AI</span>. <br />
+                    Upload your profile. Bridge the gap. Secure the job.
                 </motion.p>
 
                 <motion.div
@@ -202,11 +201,6 @@ export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) 
                         className="px-12 py-6 bg-[#ff1e56] text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_50px_rgba(255,30,86,0.4)] transition-all flex items-center gap-4 group"
                     >
                         Start Analysis <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    <button
-                        onClick={onDemoStart}
-                        className="px-12 py-6 bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all flex items-center gap-4 group">
-                        <Play size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" /> Investor Demo
                     </button>
                 </motion.div>
 
@@ -383,8 +377,8 @@ export const LandingPage = ({ onEnterTerminal, onDemoStart }: LandingPageProps) 
                         <div className="absolute top-0 right-0 p-8">
                             <Activity size={32} className="text-[#00f0ff] animate-pulse" />
                         </div>
-                        <div className="h-[400px] w-full relative z-10">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <div className="w-full relative z-10 flex items-center justify-center min-h-[400px]">
+                            <ResponsiveContainer width="100%" height={400}>
                                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                                     <PolarGrid stroke="rgba(255,255,255,0.05)" />
                                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#666', fontSize: 11, fontWeight: 'black' }} />

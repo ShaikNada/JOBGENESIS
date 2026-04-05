@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IdeLayout } from './components/IdeLayout';
+import { auth } from './firebase';
+import { onIdTokenChanged } from 'firebase/auth';
 import { getSocket } from './socket';
 import { API_URL } from './config';
 
@@ -8,7 +10,6 @@ import { LandingPage } from './components/LandingPage';
 import { ResumeUpload } from './components/ResumeUpload';
 import { ResumePreview } from './components/ResumePreview';
 import { JobDashboard } from './components/JobDashboard';
-import { RecruiterDashboard } from './components/RecruiterDashboard';
 import { ProfilePage } from './components/ProfilePage';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -16,49 +17,54 @@ import { TechnicalExam } from './components/TechnicalExam';
 import { AiInterviewRoom } from './components/AiInterviewRoom';
 import { DetailedReportView } from './components/DetailedReportView';
 import { DigitalImmunityWrapper } from './components/DigitalImmunityWrapper';
+import { SkillGapReportPage } from './components/SkillGapReportPage';
 
-type AppState = 'landing' | 'auth' | 'resume' | 'resume-preview' | 'dashboard' | 'exam' | 'simulation' | 'interview' | 'report' | 'profile' | 'recruiter-dashboard';
+type AppState = 'landing' | 'auth' | 'resume' | 'resume-preview' | 'dashboard' | 'exam' | 'simulation' | 'interview' | 'report' | 'profile' | 'skill-gap';
 
 function App() {
   const [view, setView] = useState<AppState>('landing');
   const [user, setUser] = useState<any | null>(null);
   const [resumeData, setResumeData] = useState<any>(null);
+  const [skillGapData, setSkillGapData] = useState<any>(null);
 
   useEffect(() => {
-    // Check session on mount
-    const savedUserStr = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    // 🛡️ Monitor Firebase Auth and Refresh Token Automatically
+    const unsubscribe = onIdTokenChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        const token = await fbUser.getIdToken();
+        localStorage.setItem('token', token);
+        console.log('🔄 Firebase Token Refreshed Automatically');
 
-    if (token) {
-      // Fetch fresh profile from backend
-      fetch(`${API_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
+        // Fetch fresh profile from backend with the new token
+        try {
+          const res = await fetch(`${API_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
           if (data._id) {
             setUser(data);
             setResumeData(data.resumeData);
-            if (data.role === 'recruiter') {
-              setView('recruiter-dashboard');
-            } else {
-              setView('dashboard');
-            }
-          } else {
-            // Token might be invalid
-            handleLogout();
+            localStorage.setItem('user', JSON.stringify(data));
           }
-        })
-        .catch(err => {
-          console.error("Profile sync failed", err);
-          // Fallback to local storage if offline or error
-          if (savedUserStr) {
-            const savedUser = JSON.parse(savedUserStr);
-            setUser(savedUser);
-            setView(savedUser.role === 'recruiter' ? 'recruiter-dashboard' : 'dashboard');
-          }
-        });
+        } catch (err) {
+          console.error("Auth sync failed", err);
+        }
+      } else {
+        // User logged out from Firebase centrally
+        if (view !== 'landing' && view !== 'auth') {
+          handleLogout();
+        }
+      }
+    });
+
+    // Check session on mount
+    const token = localStorage.getItem('token');
+
+    if (token && view === 'landing') {
+      setView('dashboard');
     }
+
+    return () => unsubscribe();
   }, []);
 
   // State to track if mission has started
@@ -83,7 +89,7 @@ function App() {
   const emitTelemetry = (updates: any) => {
     getSocket().emit('candidate_telemetry', {
       id: candidateId,
-      name: user?.name || 'Guest Operative',
+      name: user?.name || 'Candidate',
       ...updates
     });
   };
@@ -118,7 +124,7 @@ function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`⚡ +XP Awarded! Total: ${data?.skillTree?.totalXP || '??'}`, { duration: 3000 });
+        toast.success(`⚡ +XP Awarded! Total: ${data?.skillTree?.totalXP || '??'}`, { duration: 2500 });
         
         // Live feedback for recruiter
         emitTelemetry({ 
@@ -141,43 +147,13 @@ function App() {
   const handleLogin = (userData: any) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    if (userData.role === 'recruiter') {
-      setView('recruiter-dashboard');
+    if (!userData.resumeData || (Array.isArray(userData.resumeData.skills) && userData.resumeData.skills.length === 0)) {
+      setView('resume');
     } else {
       setView('dashboard');
     }
   };
 
-  const handleDemoStart = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/demo/login`, {
-        method: 'POST'
-      });
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        setResumeData({
-            name: "Investor Operative",
-            title: "Senior Full Stack Architect",
-            summary: "Simulated high-performance profile for investor demonstration.",
-            skills: ["React", "Node.js", "System Design", "AI Integration"],
-            experience: [
-                { title: "CTO", company: "JobGenesis", duration: "2024 - Present" }
-            ],
-            targetRoles: [
-                { title: "Senior Architect", icon: "🏗️", domain: "backend" },
-                { title: "AI Lead", icon: "🧠", domain: "algorithms" }
-            ]
-        });
-        setView('dashboard');
-        toast.success("Investor Mode Activated. Welcome, Operative.");
-      }
-    } catch (e) {
-      toast.error("Demo Bridge Failed.");
-    }
-  };
 
   const handleResumeAnalyzed = (data: any) => {
     setResumeData(data);
@@ -186,7 +162,7 @@ function App() {
 
   const handlePreviewConfirm = () => {
     setView('dashboard');
-    toast.success('Profile Verified! Proceeding to Mission Selection.');
+    toast.success('Profile confirmed! Let\'s go.', { duration: 2000 });
   };
 
   const handleLogout = () => {
@@ -194,7 +170,7 @@ function App() {
     localStorage.removeItem('user');
     setUser(null);
     setView('landing');
-    toast.success("Identity Protocol Terminated.");
+    toast.success("Logged out successfully.");
   };
 
   const handleStartMission = (config: any) => {
@@ -247,7 +223,7 @@ function App() {
         }}
       />
 
-      {view === 'landing' && <LandingPage onEnterTerminal={() => setView('auth')} onDemoStart={handleDemoStart} />}
+      {view === 'landing' && <LandingPage onEnterTerminal={() => setView('auth')} />}
 
       {view === 'auth' && <AuthPage onLogin={handleLogin} />}
 
@@ -266,18 +242,17 @@ function App() {
           user={user}
           resumeData={resumeData}
           onStartSimulation={handleStartMission}
+          onSkillGapReport={(data) => {
+            setSkillGapData(data);
+            setView('skill-gap');
+          }}
           onViewProfile={() => setView('profile')}
           onUploadResume={() => setView('resume')}
           onLogout={handleLogout}
-          isInvestor={user?.name === 'Investor Operative'}
         />
       )}
 
-      {view === 'recruiter-dashboard' && (
-        <RecruiterDashboard
-          onLogout={handleLogout}
-        />
-      )}
+
 
       {view === 'profile' && (
         <ProfilePage
@@ -335,6 +310,14 @@ function App() {
           skillTags={[missionConfig.role, "React", "Node.js"]} // Can be dynamic
           interviewData={interviewData}
           onRestart={() => setView('dashboard')}
+        />
+      )}
+
+      {view === 'skill-gap' && skillGapData && (
+        <SkillGapReportPage 
+          data={skillGapData} 
+          onBack={() => setView('dashboard')} 
+          onStartSimulation={handleStartMission} 
         />
       )}
     </DigitalImmunityWrapper>

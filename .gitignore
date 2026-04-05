@@ -24,3 +24,15 @@ dist-ssr
 *.sw?
 .env
 backend/.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+.venv/
+ml-engine/venv/
+ml-engine/.venv/

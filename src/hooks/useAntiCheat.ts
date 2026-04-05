@@ -1,35 +1,49 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // src/hooks/useAntiCheat.ts
 export const useAntiCheat = (onStrike?: (reason: string) => void) => {
   const [warnings, setWarnings] = useState(0);
   const [disqualified, setDisqualified] = useState(false);
   
+  // Debounce to prevent rapid-fire duplicate strikes
+  const lastStrikeTime = useRef<number>(0);
+  
   // Keystroke cadence tracking
   const lastKeyTime = useRef<number>(Date.now());
   const keystrokeCount = useRef<number>(0);
 
+  // Stable callback ref to avoid re-registering listeners
+  const onStrikeRef = useRef(onStrike);
+  useEffect(() => { onStrikeRef.current = onStrike; }, [onStrike]);
+
+  const fireStrike = useCallback((reason: string) => {
+    const now = Date.now();
+    // Debounce: ignore strikes that fire within 3 seconds of each other
+    if (now - lastStrikeTime.current < 3000) return;
+    lastStrikeTime.current = now;
+
+    setWarnings(prev => {
+      const newWarnings = prev + 1;
+      if (onStrikeRef.current) onStrikeRef.current(reason);
+      // Increase disqualification threshold to 5 for demo friendliness
+      if (newWarnings >= 5) setDisqualified(true);
+      return newWarnings;
+    });
+  }, []);
+
   useEffect(() => {
     // 1. Window Blur Detection (Clicking out of the tab)
     const handleBlur = () => {
-      setWarnings(prev => {
-        const newWarnings = prev + 1;
-        if (onStrike) onStrike('Tab Switch / Window Focus Lost');
-        if (newWarnings >= 3) setDisqualified(true);
-        return newWarnings;
-      });
+      fireStrike('Tab switch detected');
     };
 
     // 2. Keystroke Cadence Monitoring (Copy/Paste detection)
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore modifier keys
       if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
 
       const now = Date.now();
       const timeDiff = now - lastKeyTime.current;
       
-      // If keystrokes are impossibly fast (e.g., pasting block of text triggers many characters instantly)
-      // Note: React/Browser sometimes bundles paste events, but rapid sequential keydowns also indicate script/macro
       if (timeDiff < 10) { 
         keystrokeCount.current += 1;
       } else {
@@ -38,13 +52,8 @@ export const useAntiCheat = (onStrike?: (reason: string) => void) => {
 
       // If more than 30 characters appear in under 10ms each, it's a massive paste
       if (keystrokeCount.current > 30) {
-        keystrokeCount.current = 0; // Reset
-        setWarnings(prev => {
-          const newWarnings = prev + 1;
-          if (onStrike) onStrike('Unnatural Keystroke Cadence (Paste Detected)');
-          if (newWarnings >= 3) setDisqualified(true);
-          return newWarnings;
-        });
+        keystrokeCount.current = 0;
+        fireStrike('Unusual keystroke pattern detected');
       }
 
       lastKeyTime.current = now;
@@ -53,14 +62,9 @@ export const useAntiCheat = (onStrike?: (reason: string) => void) => {
     // Global Paste Event Listener
     const handlePaste = (e: ClipboardEvent) => {
         const pastedText = e.clipboardData?.getData('text') || '';
-        // If pasting more than 50 characters of code, flag it
-        if (pastedText.length > 50) {
-            setWarnings(prev => {
-                const newWarnings = prev + 1;
-                if (onStrike) onStrike('Unauthorized Code Paste Detected');
-                if (newWarnings >= 3) setDisqualified(true);
-                return newWarnings;
-            });
+        // Only flag very large pastes (100+ chars) to avoid false positives
+        if (pastedText.length > 100) {
+            fireStrike('Large text paste detected');
         }
     }
 
@@ -73,7 +77,7 @@ export const useAntiCheat = (onStrike?: (reason: string) => void) => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [onStrike]);
+  }, [fireStrike]);
 
   return { 
     warnings, 

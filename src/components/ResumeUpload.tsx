@@ -67,7 +67,7 @@ export const ResumeUpload = ({ onAnalyzeComplete }: ResumeUploadProps) => {
                 const formData = new FormData();
                 formData.append('resume', selectedFile);
 
-                res = await fetch(`${API_URL}/api/ai/upload-resume`, {
+                res = await fetch(`${API_URL}/api/resume/upload`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -75,7 +75,7 @@ export const ResumeUpload = ({ onAnalyzeComplete }: ResumeUploadProps) => {
                     body: formData
                 });
             } else {
-                res = await fetch(`${API_URL}/api/ai/analyze-resume`, {
+                res = await fetch(`${API_URL}/api/resume/analyze-text`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

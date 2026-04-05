@@ -21,6 +21,7 @@ if (REDIS_URI && REDIS_URI !== 'false') {
         });
 
         connection.on('error', (err) => {
+            if (err.message.includes('ECONNRESET')) return;
             console.warn('⚠️ BullMQ Redis Connection Warning:', err.message);
         });
 

@@ -134,7 +134,8 @@ export const CodeEditor = ({
       socket.off('code_update', onCodeUpdate);
       socket.off('cursor_move', onCursorMove);
     };
-  }, [missionId, setCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missionId]);
 
   const handleAction = async (mode: 'run' | 'submit' | 'custom') => {
     if (!isTerminalOpen) setIsTerminalOpen(true);
