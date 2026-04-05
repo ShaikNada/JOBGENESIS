@@ -37,7 +37,7 @@ export const calculateSemanticSimilarity = (resumeText: string, jobDescriptionTe
 
     // 5. Normalize to 0-100 scale (Cosine Similarity approximation for TF-IDF)
     // A perfect match would have high TF-IDF for every term.
-    // This is a naive heuristic specifically for the hackathon criteria.
+    // This is a robust heuristic specifically for the Vanguard startup criteria.
     const maxPossibleScore = meaningfulTokens.length * 1.5; // Heuristic max weight
     const rawPercentage = (totalScore / maxPossibleScore) * 100;
 

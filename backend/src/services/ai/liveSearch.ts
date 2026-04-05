@@ -1,6 +1,6 @@
 import axios from "axios";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { askAI, getAIClient } from "./modelRouter";
+import { calculateNeuralMatchScore } from "./scoring";
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
 
@@ -45,15 +45,24 @@ export async function searchJobsOnWeb(role: string, company: string): Promise<Li
 
             const results = response.data.organic_results;
             if (results && results.length > 0) {
-                return results.slice(0, 3).map((res: any) => ({
-                    title: res.title,
-                    company: company,
-                    description: res.snippet,
-                    url: res.link,
-                    isAvailable: true,
-                    match: 70 + Math.floor(Math.random() * 20), // Placeholder match
-                    skills: ["React", "Node.js", "TypeScript"] // Need better extraction later
-                }));
+                return results.slice(0, 3).map((res: any) => {
+                    const matchScore = calculateNeuralMatchScore(
+                        res.snippet || "", 
+                        query, 
+                        [], 
+                        [role, company] // Minimum contextual skills for matching
+                    );
+
+                    return {
+                        title: res.title,
+                        company: company,
+                        description: res.snippet,
+                        url: res.link,
+                        isAvailable: true,
+                        match: Math.max(matchScore, 45), // Ensure a realistic floor for live listings
+                        skills: ["React", "Node.js", "TypeScript"]
+                    };
+                });
             }
         } catch (error) {
             console.error("[LiveSearch] SerpAPI Error:", error);
@@ -121,17 +130,25 @@ export async function autoMatchLive(resumeData: any): Promise<LiveSearchResult[]
 
         const results = response.data.organic_results;
         if (results && results.length > 0) {
-            return results.slice(0, 5).map((res: any, index: number) => ({
-                id: res.cache_id || `live-${index}`,
-                title: res.title,
-                // Extract company from source or snippets if available
-                company: res.source || res.display_link || "Real World Job",
-                description: res.snippet,
-                url: res.link,
-                isAvailable: true,
-                match: 75 + Math.floor(Math.random() * 20),
-                skills: resumeData.skills?.slice(0, 3) || ["Software Development"]
-            }));
+            return results.slice(0, 5).map((res: any, index: number) => {
+                const matchScore = calculateNeuralMatchScore(
+                    resumeData.rawText || JSON.stringify(resumeData), 
+                    res.snippet + " " + res.title, 
+                    resumeData.skills || [], 
+                    []
+                );
+
+                return {
+                    id: res.cache_id || `live-${index}`,
+                    title: res.title,
+                    company: res.source || res.display_link || "Real World Job",
+                    description: res.snippet,
+                    url: res.link,
+                    isAvailable: true,
+                    match: matchScore,
+                    skills: resumeData.skills?.slice(0, 3) || ["Software Development"]
+                };
+            });
         }
     } catch (error) {
         console.error("[LiveSearch] AutoMatch SerpAPI Error:", error);

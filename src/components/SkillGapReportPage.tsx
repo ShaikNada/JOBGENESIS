@@ -10,11 +10,10 @@ interface SkillGapReportProps {
 export const SkillGapReportPage = ({ data, onBack, onStartSimulation }: SkillGapReportProps) => {
   const { gapResult, pathResult, role, company, jobUrl, isLiveMatch } = data;
   
-  // Use the new naming convention from our hardened controller
-  const matchScore = gapResult?.matchScore || gapResult?.matchScoreRaw || 0;
+  const matchScore = gapResult?.matchScore || 0;
   const employability = gapResult?.employabilityIndex || 0;
   const pivotRoles = gapResult?.pivotRoles || [];
-  const statusLabel = isLiveMatch || gapResult?.isVacant ? 'Neural Link Verified // Job Open' : 'Simulation Mode // Analyzing Market Requisites';
+  const statusLabel = isLiveMatch || gapResult?.isVacant ? 'Neural Link Verified // Job Open' : 'Vanguard Deployment // Analyzing Market Requisites';
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-red-400 border-red-500/50';
@@ -67,7 +66,7 @@ export const SkillGapReportPage = ({ data, onBack, onStartSimulation }: SkillGap
                   <Shield size={12} className="text-gray-600" />
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-2 uppercase leading-none">{role}</h1>
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex flex-wrap items-center gap-4 mb-6">
                    <div className="flex items-center gap-2">
                     <Terminal size={16} className="text-red-500" />
                     <h2 className="text-xl text-gray-400 font-bold uppercase tracking-[0.2em]">{company}</h2>
@@ -77,9 +76,9 @@ export const SkillGapReportPage = ({ data, onBack, onStartSimulation }: SkillGap
                       href={jobUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] whitespace-nowrap"
                      >
-                       <ExternalLink size={14} /> Apply Directly
+                       <ExternalLink size={14} /> Neural Apply ▹
                      </a>
                    )}
                 </div>
@@ -101,19 +100,19 @@ export const SkillGapReportPage = ({ data, onBack, onStartSimulation }: SkillGap
             {/* Skill Matrix Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-[#0a0a0f] border border-white/5 rounded-[2rem] p-6 shadow-lg">
-                <h3 className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2"><XCircle size={14} /> Gaps Found</h3>
-                <div className="flex flex-wrap gap-2 text-wrap">
+                <h3 className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2"><XCircle size={14} /> Strategic Gaps</h3>
+                <div className="flex flex-wrap gap-2">
                   {gapResult?.missingSkills?.map((skill: string) => (
-                    <span key={skill} className="px-4 py-2 bg-red-500/5 border border-red-500/10 text-red-400 rounded-xl text-[9px] font-black uppercase tracking-widest">{skill}</span>
+                    <span key={skill} className="px-3 py-1.5 bg-red-500/5 border border-red-500/10 text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{skill}</span>
                   )) || <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No Gaps Detected</p>}
                 </div>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-[#0a0a0f] border border-white/5 rounded-[2rem] p-6 shadow-lg">
-                <h3 className="text-[9px] font-black text-green-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2"><CheckCircle2 size={14} /> Verified Intel</h3>
-                <div className="flex flex-wrap gap-2 text-wrap">
+                <h3 className="text-[9px] font-black text-green-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2"><CheckCircle2 size={14} /> Intelligence Assets</h3>
+                <div className="flex flex-wrap gap-2">
                   {gapResult?.matchedSkills?.map((skill: string) => (
-                    <span key={skill} className="px-4 py-2 bg-green-500/5 border border-green-500/10 text-green-400 rounded-xl text-[9px] font-black uppercase tracking-widest">{skill}</span>
+                    <span key={skill} className="px-3 py-1.5 bg-green-500/5 border border-green-500/10 text-green-400 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{skill}</span>
                   )) || <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Awaiting Data Sync</p>}
                 </div>
               </motion.div>
@@ -188,12 +187,12 @@ export const SkillGapReportPage = ({ data, onBack, onStartSimulation }: SkillGap
             className="w-full group relative py-8 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.4em] text-xs rounded-3xl overflow-hidden transition-all shadow-[0_0_50px_rgba(220,38,38,0.2)] flex items-center justify-center gap-4"
           >
             <Play size={20} fill="currentColor" stroke="none" className="group-hover:scale-110 transition-transform" />
-            Initialize Combat Simulation
+            Initialize Vanguard Assessment
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
           </button>
           <div className="mt-6 flex items-center justify-center gap-2 text-gray-800">
             <Shield size={12} />
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">Neural Encryption Verified // Zero-Trust Active</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Vanguard Deployment Protocol // Enterprise Grade Verified</span>
           </div>
         </motion.div>
         

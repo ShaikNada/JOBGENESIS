@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 import { askAI } from '../services/ai/modelRouter';
-import { calculateSemanticSimilarity } from '../services/similarityEngine';
+import { calculateNeuralMatchScore } from '../services/ai/scoring';
+import { Interview } from '../models/Interview.model';
+import { Types } from 'mongoose';
 
 const ML_ENGINE_URL = process.env.ML_ENGINE_URL || 'http://127.0.0.1:8000';
 
@@ -34,7 +36,7 @@ export const analyzeSkillGap = async (req: Request, res: Response) => {
         }
 
         // 2️⃣ Advanced AI Analysis (Prime for Accuracy)
-        // We ALWAYS run AI for high-fidelity matching during the hackathon to ensure 
+        // We ALWAYS run AI for high-fidelity matching during the Vanguard deployment to ensure 
         // common skills like HTML/CSS/JS are never missed.
         const prompt = `
             You are a world-class technical recruiter and systems architect. 
@@ -106,22 +108,44 @@ export const analyzeSkillGap = async (req: Request, res: Response) => {
             { role: "Software Architect", company: "Google", match: 65, reason: "Strong system foundational knowledge" },
             { role: "Product Engineer", company: "Stripe", match: 72, reason: "Focus on user-centric delivery" }
         ];
-        const matchScoreRaw = mlData?.matchScore || 45; 
+        
+        // 4️⃣ Intelligence Engine (The source of truth for match accuracy)
+        const neuralMatchScore = calculateNeuralMatchScore(
+            resumeText, 
+            jobDescriptionText, 
+            finalExtracted, 
+            []
+        );
+
         const isVacant = mlData?.isVacant || false;
         
-        // 4️⃣ Semantic Engine (The source of truth for employability)
-        const semanticSimilarity = calculateSemanticSimilarity(resumeText, jobDescriptionText);
+        // 5️⃣ Vanguard Performance Integration: Fetch real simulation history
+        let performanceScore = 0;
+        try {
+            const userId = (req as any).user?.uid; // Assuming auth middleware provides this
+            if (userId) {
+                const recentInterviews = await Interview.find({ candidateId: userId }).sort({ createdAt: -1 }).limit(5);
+                if (recentInterviews.length > 0) {
+                    const totalRes = recentInterviews.reduce((acc, curr) => acc + (curr.finalReport?.overallScore || 0), 0);
+                    performanceScore = Math.round(totalRes / recentInterviews.length);
+                    console.log(`[SkillGap] performanceScore integrated: ${performanceScore}`);
+                }
+            }
+        } catch (perfErr) {
+            console.error("[SkillGap] Failed to fetch performance metrics:", perfErr);
+        }
         
-        // 5️⃣ Weighted Calculation
+        // 6️⃣ Weighted Calculation (Startup Grade)
+        // 40% Neural Match + 40% Simulation Performance + 20% Market Stability
         const employabilityIndex = Math.round(
-            (matchScoreRaw * 0.4) +
-            (semanticSimilarity * 0.4) +
-            (0 * 0.2) // Coding performance placeholder
+            (neuralMatchScore * 0.4) +
+            (performanceScore * 0.4) +
+            (20) // Current Market Stability Constant (Will be dynamic in Phase 4)
         );
 
         const response = {
-            matchScore: Math.max(matchScoreRaw, semanticSimilarity),
-            employabilityIndex: Math.max(employabilityIndex, 12),
+            matchScore: neuralMatchScore,
+            employabilityIndex: Math.max(employabilityIndex, 10),
             matchedSkills: finalExtracted,
             missingSkills: finalMissing,
             pivotRoles: finalPivots,

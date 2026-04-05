@@ -42,7 +42,7 @@ def extract_skills_spacy(text: str) -> list[str]:
         if chunk_text in known_skills:
             extracted.add(chunk_text)
 
-    # 3. Robust Pattern Fallback (Hackathon Safety Net)
+    # 3. Robust Pattern Fallback (Vanguard Safety Net)
     # Catches common patterns like "Node.js", "React-Native", etc.
     import re
     tech_patterns = [
